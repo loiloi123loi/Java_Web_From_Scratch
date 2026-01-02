@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "SocialApp",
+      "request": "launch",
+      "mainClass": "com.polime.SocialApp",
+      "projectName": "smart_class"
+    },
+    {
+      "type": "java",
+      "name": "SocialApp",
+      "request": "launch",
+      "mainClass": "com.polime.SocialApp",
+      "projectName": "social_app_manual",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

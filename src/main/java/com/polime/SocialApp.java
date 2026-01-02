@@ -1,0 +1,60 @@
+package com.polime;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+
+import com.polime.controller.UserHandler;
+import com.polime.core.AppConfig;
+import com.polime.core.WebServer;
+import com.polime.repository.RefreshTokenRepository;
+import com.polime.repository.UserRepository;
+import com.polime.service.UserService;
+import com.polime.utils.JwtUtils;
+import com.polime.utils.PasswordUtils;
+
+public class SocialApp {
+    private static final String BASE_PATH = "/api/v1";
+    private static final String USER_API_PATH = BASE_PATH + "/users";
+
+    public static void main(String[] args) {
+        try {
+            System.out.println("Starting Social Network API (Manual Mode)...");
+
+            AppConfig config = new AppConfig();
+            PasswordUtils.setSecret(config.getProperty("auth.password_secret"));
+            JwtUtils.init(config.getProperty("jwt.access_token_secret"),
+                    config.getLongProperty("jwt.access_token_expires_in", 900000L),
+                    config.getProperty("jwt.refresh_token_secret"),
+                    config.getLongProperty("jwt.refresh_token_expires_in", 2592000000L),
+                    config.getProperty("jwt.email_verify_token_secret"),
+                    config.getLongProperty("jwt.email_verify_token_expires_in", 604800000L));
+
+            String dbUrl = config.getProperty("db.url");
+            String dbUser = config.getProperty("db.username");
+            String dbPass = config.getProperty("db.password");
+            int port = config.getIntProperty("server.port", 8080);
+
+            Connection connection = DriverManager.getConnection(dbUrl, dbUser, dbPass);
+            System.out.println("-> Database Connected (" + dbUrl + ")");
+
+            UserRepository userRepository = new UserRepository(connection);
+            userRepository.initTable();
+
+            RefreshTokenRepository refreshTokenRepository = new RefreshTokenRepository(connection);
+            refreshTokenRepository.initTable();
+
+            UserService userService = new UserService(userRepository, refreshTokenRepository);
+
+            UserHandler userHandler = new UserHandler(USER_API_PATH, userService);
+
+            WebServer server = new WebServer(port);
+            server.addRoute(USER_API_PATH, userHandler);
+
+            server.start();
+            System.out.println("-> Ready to accept requests at http://localhost:" + port);
+        } catch (Exception e) {
+            System.err.println("Error starting server: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}

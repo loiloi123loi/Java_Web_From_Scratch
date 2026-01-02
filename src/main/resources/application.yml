@@ -1,0 +1,54 @@
+server:
+  port: 8080
+
+profiles:
+  local:
+    server:
+      port: 8080
+    auth:
+      password_secret: "my_super_secret_key_123"
+    jwt:
+      access_token_secret: "access_token_secret_extra_long_key_for_safety"
+      access_token_expires_in: 900000
+      refresh_token_secret: "refresh_token_secret_extra_long_key_for_safety"
+      refresh_token_expires_in: 2592000000
+      email_verify_token_secret: "email_verify_token_secret_extra_long_key_for_safety"
+      email_verify_token_expires_in: 604800000
+    db:
+      url: jdbc:mysql://localhost:3306/smart_class_db
+      username: root
+      password: ""
+
+  dev:
+    server:
+      port: 8081
+    auth:
+      password_secret: "my_super_secret_key_123"
+    jwt:
+      access_token_secret: "access_token_secret_extra_long_key_for_safety"
+      access_token_expires_in: 900000
+      refresh_token_secret: "refresh_token_secret_extra_long_key_for_safety"
+      refresh_token_expires_in: 2592000000
+      email_verify_token_secret: "email_verify_token_secret_extra_long_key_for_safety"
+      email_verify_token_expires_in: 604800000
+    db:
+      url: jdbc:mysql://dev-db-server:3306/smart_class_db
+      username: dev_user
+      password: dev_pass
+
+  prod:
+    server:
+      port: 80
+    auth:
+      password_secret: "my_super_secret_key_123"
+    jwt:
+      access_token_secret: "access_token_secret_extra_long_key_for_safety"
+      access_token_expires_in: 900000
+      refresh_token_secret: "refresh_token_secret_extra_long_key_for_safety"
+      refresh_token_expires_in: 2592000000
+      email_verify_token_secret: "email_verify_token_secret_extra_long_key_for_safety"
+      email_verify_token_expires_in: 604800000
+    db:
+      url: jdbc:mysql://prod-db-server:3306/smart_class_db
+      username: prod_user
+      password: prod_secure_pass

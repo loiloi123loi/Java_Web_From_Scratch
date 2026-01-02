@@ -1,0 +1,21 @@
+{
+  "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "file",
+  "files.trimTrailingWhitespace": true,
+  "files.trimFinalNewlines": true,
+
+  "[java]": {
+    "editor.defaultFormatter": "redhat.java",
+    "editor.formatOnSave": true,
+    "editor.rulers": [120],
+    "editor.codeActionsOnSave": {
+      "source.optimizeImports": "explicit",
+      "source.organizeImports": "explicit"
+    }
+  },
+
+  "java.format.settings.url": "./formatter.xml",
+  "java.format.settings.profile": "CustomStyle",
+  "java.format.onType.enabled": true,
+  "java.configuration.updateBuildConfiguration": "interactive"
+}
