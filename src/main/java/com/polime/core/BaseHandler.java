@@ -88,6 +88,8 @@ public abstract class BaseHandler implements HttpHandler {
             handleDatabaseError(exchange, e);
         } catch (Exception e) {
             handleInternalError(exchange, e);
+        } finally {
+            DatabaseManager.closeConnection();
         }
     }
 

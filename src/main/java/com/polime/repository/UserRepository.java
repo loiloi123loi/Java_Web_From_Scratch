@@ -13,18 +13,20 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.polime.core.DatabaseManager;
 import com.polime.enums.EUserVerifyStatus;
 import com.polime.model.User;
 
 public class UserRepository {
-	private final Connection connection;
+	public UserRepository() {
+	}
 
-	public UserRepository(Connection connection) {
-		this.connection = connection;
+	private Connection getConnection() throws SQLException {
+		return DatabaseManager.getConnection();
 	}
 
 	public void initTable() throws SQLException {
-		try (Statement stmt = connection.createStatement()) {
+		try (Statement stmt = getConnection().createStatement()) {
 			stmt.execute("CREATE TABLE IF NOT EXISTS users (" + "id BIGINT AUTO_INCREMENT PRIMARY KEY, "
 					+ "name VARCHAR(255), " + "username VARCHAR(255), " + "email VARCHAR(255) UNIQUE, "
 					+ "date_of_birth DATE, " + "password VARCHAR(255), " + "created_at TIMESTAMP, "
@@ -36,7 +38,7 @@ public class UserRepository {
 	public User save(User user) throws SQLException {
 		String sql = "INSERT INTO users (name, username, email, date_of_birth, password, created_at, updated_at, verify_status, email_verify_token, forgot_password_token) "
 				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-		try (PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+		try (PreparedStatement pstmt = getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 			pstmt.setString(1, user.getName());
 			pstmt.setString(2, user.getUsername());
 			pstmt.setString(3, user.getEmail());
@@ -61,7 +63,7 @@ public class UserRepository {
 
 	public void update(User user) throws SQLException {
 		String sql = "UPDATE users SET name = ?, username = ?, email = ?, date_of_birth = ?, password = ?, updated_at = ?, verify_status = ?, email_verify_token = ?, forgot_password_token = ? WHERE id = ?";
-		try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+		try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
 			pstmt.setString(1, user.getName());
 			pstmt.setString(2, user.getUsername());
 			pstmt.setString(3, user.getEmail());
@@ -78,7 +80,7 @@ public class UserRepository {
 
 	public User findByEmail(String email) throws SQLException {
 		String sql = "SELECT * FROM users WHERE email = ?";
-		try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+		try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
 			pstmt.setString(1, email);
 			try (ResultSet rs = pstmt.executeQuery()) {
 				if (rs.next()) {
@@ -91,7 +93,7 @@ public class UserRepository {
 
 	public List<User> findAll() throws SQLException {
 		List<User> users = new ArrayList<>();
-		try (Statement stmt = connection.createStatement()) {
+		try (Statement stmt = getConnection().createStatement()) {
 			ResultSet rs = stmt.executeQuery("SELECT * FROM users");
 			while (rs.next()) {
 				users.add(mapResultSetToUser(rs));
