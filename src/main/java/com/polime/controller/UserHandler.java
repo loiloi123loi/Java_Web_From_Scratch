@@ -8,6 +8,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.polime.core.BaseHandler;
 import com.polime.core.WebServer;
+import com.polime.dto.user.request.UserLoginDto;
 import com.polime.dto.user.request.UserRegisterDto;
 import com.polime.enums.EHttpStatus;
 import com.polime.service.UserService;
@@ -27,6 +28,7 @@ public class UserHandler extends BaseHandler {
     @Override
     protected void registerRoutes() {
         post("/register", this::handleRegister);
+        post("/login", this::handleLogin);
     }
 
     private void handleRegister(HttpExchange exchange) throws IOException, SQLException {
@@ -36,5 +38,14 @@ public class UserHandler extends BaseHandler {
         dto.validate();
 
         WebServer.sendJsonResponse(exchange, EHttpStatus.CREATED.getCode(), userService.registerUser(dto));
+    }
+
+    private void handleLogin(HttpExchange exchange) throws IOException, SQLException {
+        String body = WebServer.readRequestBody(exchange);
+        UserLoginDto dto = gson.fromJson(body, UserLoginDto.class);
+
+        dto.validate();
+
+        WebServer.sendJsonResponse(exchange, EHttpStatus.OK.getCode(), userService.loginUser(dto));
     }
 }

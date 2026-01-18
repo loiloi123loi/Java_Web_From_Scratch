@@ -15,6 +15,10 @@ public class PasswordUtils {
         return sha256(password + secret);
     }
 
+    public static boolean verifyPassword(String password, String hashed) {
+        return hashPassword(password).equals(hashed);
+    }
+
     private static String sha256(String content) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
