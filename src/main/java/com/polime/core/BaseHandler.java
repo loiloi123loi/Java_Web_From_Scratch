@@ -9,6 +9,8 @@ import com.google.gson.JsonSyntaxException;
 import com.polime.dto.BaseResponseDto;
 import com.polime.enums.EHttpStatus;
 import com.polime.exception.DuplicateResourceException;
+import com.polime.exception.InvalidCredentialsException;
+import com.polime.exception.ResourceNotFoundException;
 import com.polime.exception.ValidationException;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -82,6 +84,10 @@ public abstract class BaseHandler implements HttpHandler {
             handleValidationError(exchange, e);
         } catch (DuplicateResourceException e) {
             handleDuplicateResource(exchange, e);
+        } catch (ResourceNotFoundException e) {
+            handleResourceNotFound(exchange, e);
+        } catch (InvalidCredentialsException e) {
+            handleInvalidCredentials(exchange, e);
         } catch (JsonSyntaxException e) {
             handleSyntaxError(exchange, e);
         } catch (SQLException e) {
@@ -111,6 +117,16 @@ public abstract class BaseHandler implements HttpHandler {
     protected void handleDuplicateResource(HttpExchange exchange, DuplicateResourceException e) throws IOException {
         WebServer.sendJsonResponse(exchange, EHttpStatus.CONFLICT.getCode(),
                 new BaseResponseDto<Object>(e.getMessage(), "DUPLICATE_RESOURCE"));
+    }
+
+    protected void handleResourceNotFound(HttpExchange exchange, ResourceNotFoundException e) throws IOException {
+        WebServer.sendJsonResponse(exchange, EHttpStatus.NOT_FOUND.getCode(),
+                new BaseResponseDto<Object>(e.getMessage(), "RESOURCE_NOT_FOUND"));
+    }
+
+    protected void handleInvalidCredentials(HttpExchange exchange, InvalidCredentialsException e) throws IOException {
+        WebServer.sendJsonResponse(exchange, EHttpStatus.UNAUTHORIZED.getCode(),
+                new BaseResponseDto<Object>(e.getMessage(), "INVALID_CREDENTIALS"));
     }
 
     protected void handleSyntaxError(HttpExchange exchange, JsonSyntaxException e) throws IOException {
