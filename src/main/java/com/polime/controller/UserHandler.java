@@ -9,12 +9,14 @@ import com.google.gson.GsonBuilder;
 import com.polime.core.AppConstants;
 import com.polime.core.BaseHandler;
 import com.polime.core.WebServer;
+import com.polime.dto.BaseResponseDto;
 import com.polime.dto.user.request.UserLoginDto;
 import com.polime.dto.user.request.UserLogoutDto;
 import com.polime.dto.user.request.UserRegisterDto;
 import com.polime.enums.EHttpStatus;
 import com.polime.service.UserService;
 import com.polime.utils.LocalDateAdapter;
+import com.polime.utils.TokenBlacklist;
 import com.sun.net.httpserver.HttpExchange;
 
 import io.jsonwebtoken.Claims;
@@ -59,11 +61,18 @@ public class UserHandler extends BaseHandler {
         Claims claims = (Claims) exchange.getAttribute(AppConstants.DECODED_AUTHORIZATION);
         Long userId = Long.parseLong(claims.getSubject());
 
+        String authHeader = exchange.getRequestHeaders().getFirst("Authorization");
+        String accessToken = authHeader.substring(7).trim();
+
         String body = WebServer.readRequestBody(exchange);
         UserLogoutDto dto = gson.fromJson(body, UserLogoutDto.class);
 
         dto.validate();
 
-        WebServer.sendJsonResponse(exchange, EHttpStatus.OK.getCode(), userService.logoutUser(dto, userId));
+        BaseResponseDto<Object> response = userService.logoutUser(dto, userId);
+
+        TokenBlacklist.add(accessToken, claims.getExpiration().getTime());
+
+        WebServer.sendJsonResponse(exchange, EHttpStatus.OK.getCode(), response);
     }
 }
