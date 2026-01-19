@@ -9,9 +9,15 @@ import com.google.gson.JsonSyntaxException;
 import com.polime.dto.BaseResponseDto;
 import com.polime.enums.EHttpStatus;
 import com.polime.exception.DuplicateResourceException;
+import com.polime.exception.InvalidCredentialsException;
+import com.polime.exception.ResourceNotFoundException;
+import com.polime.exception.UnauthorizedException;
 import com.polime.exception.ValidationException;
+import com.polime.utils.JwtUtils;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+
+import io.jsonwebtoken.Claims;
 
 public abstract class BaseHandler implements HttpHandler {
     private final String basePath;
@@ -82,6 +88,12 @@ public abstract class BaseHandler implements HttpHandler {
             handleValidationError(exchange, e);
         } catch (DuplicateResourceException e) {
             handleDuplicateResource(exchange, e);
+        } catch (ResourceNotFoundException e) {
+            handleResourceNotFound(exchange, e);
+        } catch (InvalidCredentialsException e) {
+            handleInvalidCredentials(exchange, e);
+        } catch (UnauthorizedException e) {
+            handleUnauthorized(exchange, e);
         } catch (JsonSyntaxException e) {
             handleSyntaxError(exchange, e);
         } catch (SQLException e) {
@@ -113,6 +125,21 @@ public abstract class BaseHandler implements HttpHandler {
                 new BaseResponseDto<Object>(e.getMessage(), "DUPLICATE_RESOURCE"));
     }
 
+    protected void handleResourceNotFound(HttpExchange exchange, ResourceNotFoundException e) throws IOException {
+        WebServer.sendJsonResponse(exchange, EHttpStatus.NOT_FOUND.getCode(),
+                new BaseResponseDto<Object>(e.getMessage(), "RESOURCE_NOT_FOUND"));
+    }
+
+    protected void handleInvalidCredentials(HttpExchange exchange, InvalidCredentialsException e) throws IOException {
+        WebServer.sendJsonResponse(exchange, EHttpStatus.UNAUTHORIZED.getCode(),
+                new BaseResponseDto<Object>(e.getMessage(), "INVALID_CREDENTIALS"));
+    }
+
+    protected void handleUnauthorized(HttpExchange exchange, UnauthorizedException e) throws IOException {
+        WebServer.sendJsonResponse(exchange, EHttpStatus.UNAUTHORIZED.getCode(),
+                new BaseResponseDto<Object>(e.getMessage(), "UNAUTHORIZED"));
+    }
+
     protected void handleSyntaxError(HttpExchange exchange, JsonSyntaxException e) throws IOException {
         String message = e.getMessage();
 
@@ -132,6 +159,29 @@ public abstract class BaseHandler implements HttpHandler {
     protected void handleInternalError(HttpExchange exchange, Exception e) throws IOException {
         WebServer.sendJsonResponse(exchange, EHttpStatus.INTERNAL_SERVER_ERROR.getCode(),
                 new BaseResponseDto<Object>("Internal server error", "INTERNAL_ERROR"));
+    }
+
+    protected void authenticate(HttpExchange exchange) {
+        String authHeader = exchange.getRequestHeaders().getFirst("Authorization");
+        if (authHeader == null || authHeader.trim().isEmpty()) {
+            throw new UnauthorizedException("Access token is required");
+        }
+
+        if (!authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Access token is required");
+        }
+
+        String token = authHeader.substring(7).trim();
+        if (token.isEmpty()) {
+            throw new UnauthorizedException("Access token is required");
+        }
+
+        try {
+            Claims claims = JwtUtils.decodeToken(token, JwtUtils.getAccessSecret());
+            exchange.setAttribute(AppConstants.DECODED_AUTHORIZATION, claims);
+        } catch (Exception e) {
+            throw new UnauthorizedException("Invalid or expired access token");
+        }
     }
 
     @FunctionalInterface
