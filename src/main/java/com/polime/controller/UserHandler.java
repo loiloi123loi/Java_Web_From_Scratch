@@ -6,14 +6,18 @@ import java.time.LocalDate;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.polime.core.AppConstants;
 import com.polime.core.BaseHandler;
 import com.polime.core.WebServer;
 import com.polime.dto.user.request.UserLoginDto;
+import com.polime.dto.user.request.UserLogoutDto;
 import com.polime.dto.user.request.UserRegisterDto;
 import com.polime.enums.EHttpStatus;
 import com.polime.service.UserService;
 import com.polime.utils.LocalDateAdapter;
 import com.sun.net.httpserver.HttpExchange;
+
+import io.jsonwebtoken.Claims;
 
 public class UserHandler extends BaseHandler {
     private final UserService userService;
@@ -29,6 +33,7 @@ public class UserHandler extends BaseHandler {
     protected void registerRoutes() {
         post("/register", this::handleRegister);
         post("/login", this::handleLogin);
+        post("/logout", this::handleLogout);
     }
 
     private void handleRegister(HttpExchange exchange) throws IOException, SQLException {
@@ -47,5 +52,18 @@ public class UserHandler extends BaseHandler {
         dto.validate();
 
         WebServer.sendJsonResponse(exchange, EHttpStatus.OK.getCode(), userService.loginUser(dto));
+    }
+
+    private void handleLogout(HttpExchange exchange) throws IOException, SQLException {
+        authenticate(exchange);
+        Claims claims = (Claims) exchange.getAttribute(AppConstants.DECODED_AUTHORIZATION);
+        Long userId = Long.parseLong(claims.getSubject());
+
+        String body = WebServer.readRequestBody(exchange);
+        UserLogoutDto dto = gson.fromJson(body, UserLogoutDto.class);
+
+        dto.validate();
+
+        WebServer.sendJsonResponse(exchange, EHttpStatus.OK.getCode(), userService.logoutUser(dto, userId));
     }
 }
