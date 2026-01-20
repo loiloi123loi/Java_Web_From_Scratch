@@ -40,7 +40,7 @@ public class DatabaseManager {
     public static void rollback() {
         Connection conn = threadLocalConnection.get();
         try {
-            if (conn != null && !conn.isClosed()) {
+            if (conn != null && !conn.isClosed() && !conn.getAutoCommit()) {
                 conn.rollback();
                 conn.setAutoCommit(true);
             }

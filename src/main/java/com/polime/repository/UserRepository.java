@@ -95,6 +95,19 @@ public class UserRepository {
 		return null;
 	}
 
+	public User findById(Long id) throws SQLException {
+		String sql = "SELECT * FROM " + TABLE_NAME + " WHERE id = ?";
+		try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
+			pstmt.setLong(1, id);
+			try (ResultSet rs = pstmt.executeQuery()) {
+				if (rs.next()) {
+					return mapResultSetToUser(rs);
+				}
+			}
+		}
+		return null;
+	}
+
 	public List<User> findAll() throws SQLException {
 		List<User> users = new ArrayList<>();
 		try (Statement stmt = getConnection().createStatement()) {

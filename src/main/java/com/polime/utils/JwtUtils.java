@@ -35,14 +35,22 @@ public class JwtUtils {
         return createToken(userId, verifyStatus, refreshSecret, refreshExpiration);
     }
 
+    public static String signRefreshToken(Long userId, String verifyStatus, Date expDate) {
+        return createToken(userId, verifyStatus, refreshSecret, expDate);
+    }
+
     public static String signEmailVerifyToken(Long userId, String verifyStatus) {
         return createToken(userId, verifyStatus, emailVerifySecret, emailVerifyExpiration);
     }
 
     private static String createToken(Long userId, String verifyStatus, String secret, long expirationMs) {
+        return createToken(userId, verifyStatus, secret, new Date(System.currentTimeMillis() + expirationMs));
+    }
+
+    private static String createToken(Long userId, String verifyStatus, String secret, Date expDate) {
         SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         return Jwts.builder().subject(userId.toString()).claim("verify", verifyStatus).issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expirationMs)).signWith(key).compact();
+                .expiration(expDate).signWith(key).compact();
     }
 
     public static Claims decodeToken(String token, String secret) {

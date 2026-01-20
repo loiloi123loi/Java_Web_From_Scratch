@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.polime.dto.BaseResponseDto;
 import com.polime.enums.EHttpStatus;
@@ -160,6 +161,20 @@ public abstract class BaseHandler implements HttpHandler {
     protected void handleInternalError(HttpExchange exchange, Exception e) throws IOException {
         WebServer.sendJsonResponse(exchange, EHttpStatus.INTERNAL_SERVER_ERROR.getCode(),
                 new BaseResponseDto<Object>("Internal server error", "INTERNAL_ERROR"));
+    }
+
+    protected <T> T getBody(HttpExchange exchange, Gson gson, Class<T> clazz) throws IOException {
+        String body = WebServer.readRequestBody(exchange);
+        if (body == null || body.trim().isEmpty()) {
+            throw new ValidationException("Request body is required");
+        }
+
+        T dto = gson.fromJson(body, clazz);
+        if (dto == null) {
+            throw new ValidationException("Request body is required");
+        }
+
+        return dto;
     }
 
     protected void authenticate(HttpExchange exchange) {
