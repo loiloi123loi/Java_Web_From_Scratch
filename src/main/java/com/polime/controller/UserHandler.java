@@ -10,6 +10,7 @@ import com.polime.core.AppConstants;
 import com.polime.core.BaseHandler;
 import com.polime.core.WebServer;
 import com.polime.dto.BaseResponseDto;
+import com.polime.dto.user.request.TokenRefreshDto;
 import com.polime.dto.user.request.UserLoginDto;
 import com.polime.dto.user.request.UserLogoutDto;
 import com.polime.dto.user.request.UserRegisterDto;
@@ -36,21 +37,18 @@ public class UserHandler extends BaseHandler {
         post("/register", this::handleRegister);
         post("/login", this::handleLogin);
         post("/logout", this::handleLogout);
+        post("/refresh-token", this::handleRefreshToken);
     }
 
     private void handleRegister(HttpExchange exchange) throws IOException, SQLException {
-        String body = WebServer.readRequestBody(exchange);
-        UserRegisterDto dto = gson.fromJson(body, UserRegisterDto.class);
-
+        UserRegisterDto dto = getBody(exchange, gson, UserRegisterDto.class);
         dto.validate();
 
         WebServer.sendJsonResponse(exchange, EHttpStatus.CREATED.getCode(), userService.registerUser(dto));
     }
 
     private void handleLogin(HttpExchange exchange) throws IOException, SQLException {
-        String body = WebServer.readRequestBody(exchange);
-        UserLoginDto dto = gson.fromJson(body, UserLoginDto.class);
-
+        UserLoginDto dto = getBody(exchange, gson, UserLoginDto.class);
         dto.validate();
 
         WebServer.sendJsonResponse(exchange, EHttpStatus.OK.getCode(), userService.loginUser(dto));
@@ -64,9 +62,7 @@ public class UserHandler extends BaseHandler {
         String authHeader = exchange.getRequestHeaders().getFirst("Authorization");
         String accessToken = authHeader.substring(7).trim();
 
-        String body = WebServer.readRequestBody(exchange);
-        UserLogoutDto dto = gson.fromJson(body, UserLogoutDto.class);
-
+        UserLogoutDto dto = getBody(exchange, gson, UserLogoutDto.class);
         dto.validate();
 
         BaseResponseDto<Object> response = userService.logoutUser(dto, userId);
@@ -74,5 +70,12 @@ public class UserHandler extends BaseHandler {
         TokenBlacklist.add(accessToken, claims.getExpiration().getTime());
 
         WebServer.sendJsonResponse(exchange, EHttpStatus.OK.getCode(), response);
+    }
+
+    private void handleRefreshToken(HttpExchange exchange) throws IOException, SQLException {
+        TokenRefreshDto dto = getBody(exchange, gson, TokenRefreshDto.class);
+        dto.validate();
+
+        WebServer.sendJsonResponse(exchange, EHttpStatus.OK.getCode(), userService.refreshToken(dto));
     }
 }

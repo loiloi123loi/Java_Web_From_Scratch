@@ -6,9 +6,11 @@ import java.time.ZoneId;
 
 import com.polime.core.DatabaseManager;
 import com.polime.dto.BaseResponseDto;
+import com.polime.dto.user.request.TokenRefreshDto;
 import com.polime.dto.user.request.UserLoginDto;
 import com.polime.dto.user.request.UserLogoutDto;
 import com.polime.dto.user.request.UserRegisterDto;
+import com.polime.dto.user.response.TokenRefreshResponseDto;
 import com.polime.dto.user.response.UserLoginResponseDto;
 import com.polime.dto.user.response.UserRegisterResponseDto;
 import com.polime.enums.EUserVerifyStatus;
@@ -146,6 +148,55 @@ public class UserService {
             DatabaseManager.commit();
 
             return new BaseResponseDto<>("User logged out successfully", "SUCCESS");
+        } catch (Exception e) {
+            DatabaseManager.rollback();
+            throw e;
+        }
+    }
+
+    public BaseResponseDto<TokenRefreshResponseDto> refreshToken(TokenRefreshDto dto) throws SQLException {
+        try {
+            Claims claims;
+            try {
+                claims = JwtUtils.decodeToken(dto.getRefreshToken(), JwtUtils.getRefreshSecret());
+            } catch (Exception e) {
+                throw new UnauthorizedException("Invalid or expired refresh token");
+            }
+
+            if (!refreshTokenRepository.existsByToken(dto.getRefreshToken())) {
+                throw new UnauthorizedException("Refresh token used or not exist");
+            }
+
+            Long userId = Long.parseLong(claims.getSubject());
+            User user = userRepository.findById(userId);
+            if (user == null) {
+                throw new ResourceNotFoundException("User not found");
+            }
+
+            String newAccessToken = JwtUtils.signAccessToken(user.getId(), user.getVerifyStatus().name());
+            String newRefreshTokenStr = JwtUtils.signRefreshToken(user.getId(), user.getVerifyStatus().name(),
+                    claims.getExpiration());
+
+            Claims newRefreshClaims = JwtUtils.decodeToken(newRefreshTokenStr, JwtUtils.getRefreshSecret());
+
+            DatabaseManager.beginTransaction();
+
+            refreshTokenRepository.deleteByToken(dto.getRefreshToken());
+
+            RefreshToken newRefreshToken = new RefreshToken();
+            newRefreshToken.setUserId(user.getId());
+            newRefreshToken.setToken(newRefreshTokenStr);
+            newRefreshToken.setIat(
+                    OffsetDateTime.ofInstant(newRefreshClaims.getIssuedAt().toInstant(), ZoneId.systemDefault()));
+            newRefreshToken.setExp(
+                    OffsetDateTime.ofInstant(newRefreshClaims.getExpiration().toInstant(), ZoneId.systemDefault()));
+
+            refreshTokenRepository.save(newRefreshToken);
+
+            DatabaseManager.commit();
+
+            TokenRefreshResponseDto result = new TokenRefreshResponseDto(newAccessToken, newRefreshTokenStr);
+            return new BaseResponseDto<>("Token refreshed successfully", "SUCCESS", result);
         } catch (Exception e) {
             DatabaseManager.rollback();
             throw e;
