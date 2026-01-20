@@ -14,6 +14,7 @@ import com.polime.exception.ResourceNotFoundException;
 import com.polime.exception.UnauthorizedException;
 import com.polime.exception.ValidationException;
 import com.polime.utils.JwtUtils;
+import com.polime.utils.TokenBlacklist;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
@@ -174,6 +175,10 @@ public abstract class BaseHandler implements HttpHandler {
         String token = authHeader.substring(7).trim();
         if (token.isEmpty()) {
             throw new UnauthorizedException("Access token is required");
+        }
+
+        if (TokenBlacklist.isBlacklisted(token)) {
+            throw new UnauthorizedException("Token has been revoked. Please login again.");
         }
 
         try {
