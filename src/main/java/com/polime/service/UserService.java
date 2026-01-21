@@ -6,6 +6,7 @@ import java.time.ZoneId;
 
 import com.polime.core.DatabaseManager;
 import com.polime.dto.BaseResponseDto;
+import com.polime.dto.user.request.EmailVerifyDto;
 import com.polime.dto.user.request.TokenRefreshDto;
 import com.polime.dto.user.request.UserLoginDto;
 import com.polime.dto.user.request.UserLogoutDto;
@@ -18,6 +19,7 @@ import com.polime.exception.DuplicateResourceException;
 import com.polime.exception.InvalidCredentialsException;
 import com.polime.exception.ResourceNotFoundException;
 import com.polime.exception.UnauthorizedException;
+import com.polime.exception.ValidationException;
 import com.polime.model.RefreshToken;
 import com.polime.model.User;
 import com.polime.repository.RefreshTokenRepository;
@@ -34,6 +36,60 @@ public class UserService {
     public UserService(UserRepository userRepository, RefreshTokenRepository refreshTokenRepository) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
+    }
+
+    public BaseResponseDto<Object> verifyEmail(Long userId, EmailVerifyDto dto) throws SQLException {
+        try {
+            User user = userRepository.findById(userId);
+            if (user == null) {
+                throw new ResourceNotFoundException("User not found");
+            }
+
+            if (user.getVerifyStatus() == EUserVerifyStatus.Banned) {
+                throw new UnauthorizedException("Account is banned");
+            }
+
+            if (user.getVerifyStatus() == EUserVerifyStatus.Verified) {
+                return new BaseResponseDto<>("Email already verified", "SUCCESS");
+            }
+
+            String storedToken = user.getEmailVerifyToken();
+            if (storedToken == null || !storedToken.equals(dto.getEmailVerifyToken())) {
+                throw new ValidationException("Invalid verification token");
+            }
+
+            Claims claims;
+            try {
+                claims = JwtUtils.decodeToken(dto.getEmailVerifyToken(), JwtUtils.getEmailVerifySecret());
+            } catch (Exception e) {
+                throw new ValidationException("Expired or invalid verification token");
+            }
+
+            Long tokenUserId = Long.parseLong(claims.getSubject());
+            if (!tokenUserId.equals(userId)) {
+                throw new ValidationException("Invalid verification token for this user");
+            }
+
+            DatabaseManager.beginTransaction();
+            user.setVerifyStatus(EUserVerifyStatus.Verified);
+            user.setEmailVerifyToken(null);
+            user.setUpdatedAt(OffsetDateTime.now());
+            userRepository.update(user);
+            DatabaseManager.commit();
+
+            return new BaseResponseDto<>("Email verified successfully", "SUCCESS");
+        } catch (Exception e) {
+            DatabaseManager.rollback();
+            throw e;
+        }
+    }
+
+    private void sendVerificationEmail(String email, String token) {
+        System.out.println("---------------------------------------");
+        System.out.println("SENDING EMAIL TO: " + email);
+        System.out.println("TOKEN: " + token);
+        System.out.println("LINK: http://localhost:8080/verify-email?token=" + token);
+        System.out.println("---------------------------------------");
     }
 
     public BaseResponseDto<UserRegisterResponseDto> registerUser(UserRegisterDto dto) throws SQLException {
@@ -63,6 +119,8 @@ public class UserService {
             savedUser.setEmailVerifyToken(emailVerifyToken);
 
             userRepository.update(savedUser);
+
+            sendVerificationEmail(savedUser.getEmail(), emailVerifyToken);
 
             String accessToken = JwtUtils.signAccessToken(userId, EUserVerifyStatus.Unverified.name());
             String refreshTokenStr = JwtUtils.signRefreshToken(userId, EUserVerifyStatus.Unverified.name());
@@ -94,6 +152,10 @@ public class UserService {
             User user = userRepository.findByEmail(dto.getEmail());
             if (user == null) {
                 throw new ResourceNotFoundException("User not found");
+            }
+
+            if (user.getVerifyStatus() == EUserVerifyStatus.Banned) {
+                throw new UnauthorizedException("Account is banned");
             }
 
             if (!PasswordUtils.verifyPassword(dto.getPassword(), user.getPassword())) {
