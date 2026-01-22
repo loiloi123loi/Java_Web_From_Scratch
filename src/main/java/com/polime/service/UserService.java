@@ -13,6 +13,7 @@ import com.polime.dto.user.request.UserRegisterDto;
 import com.polime.dto.user.response.TokenRefreshResponseDto;
 import com.polime.dto.user.response.UserLoginResponseDto;
 import com.polime.dto.user.response.UserRegisterResponseDto;
+import com.polime.enums.EResponseCode;
 import com.polime.enums.EUserVerifyStatus;
 import com.polime.exception.DuplicateResourceException;
 import com.polime.exception.InvalidCredentialsException;
@@ -80,7 +81,7 @@ public class UserService {
             DatabaseManager.commit();
 
             UserRegisterResponseDto result = new UserRegisterResponseDto(accessToken, refreshTokenStr);
-            return new BaseResponseDto<>("User registered successfully", "SUCCESS", result);
+            return new BaseResponseDto<>("User registered successfully", EResponseCode.SUCCESS, result);
         } catch (Exception e) {
             DatabaseManager.rollback();
             throw e;
@@ -116,7 +117,7 @@ public class UserService {
             DatabaseManager.commit();
 
             UserLoginResponseDto result = new UserLoginResponseDto(accessToken, refreshTokenStr);
-            return new BaseResponseDto<>("User logged in successfully", "SUCCESS", result);
+            return new BaseResponseDto<>("User logged in successfully", EResponseCode.SUCCESS, result);
         } catch (Exception e) {
             DatabaseManager.rollback();
             throw e;
@@ -147,7 +148,7 @@ public class UserService {
 
             DatabaseManager.commit();
 
-            return new BaseResponseDto<>("User logged out successfully", "SUCCESS");
+            return new BaseResponseDto<>("User logged out successfully", EResponseCode.SUCCESS);
         } catch (Exception e) {
             DatabaseManager.rollback();
             throw e;
@@ -196,7 +197,7 @@ public class UserService {
             DatabaseManager.commit();
 
             TokenRefreshResponseDto result = new TokenRefreshResponseDto(newAccessToken, newRefreshTokenStr);
-            return new BaseResponseDto<>("Token refreshed successfully", "SUCCESS", result);
+            return new BaseResponseDto<>("Token refreshed successfully", EResponseCode.SUCCESS, result);
         } catch (Exception e) {
             DatabaseManager.rollback();
             throw e;

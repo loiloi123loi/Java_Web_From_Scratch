@@ -1,29 +1,31 @@
 package com.polime.dto;
 
+import com.polime.enums.EResponseCode;
+
 public class BaseResponseDto<T> {
-    private String code;
+    private EResponseCode code;
     private String message;
     private T result;
 
     public BaseResponseDto() {
     }
 
-    public BaseResponseDto(String message, String code) {
+    public BaseResponseDto(String message, EResponseCode code) {
         this.message = message;
         this.code = code;
     }
 
-    public BaseResponseDto(String message, String code, T result) {
+    public BaseResponseDto(String message, EResponseCode code, T result) {
         this.message = message;
         this.code = code;
         this.result = result;
     }
 
-    public String getCode() {
+    public EResponseCode getCode() {
         return code;
     }
 
-    public void setCode(String code) {
+    public void setCode(EResponseCode code) {
         this.code = code;
     }
 

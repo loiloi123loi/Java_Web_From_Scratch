@@ -11,6 +11,7 @@ import java.util.Map;
 import com.google.gson.Gson;
 import com.polime.dto.BaseResponseDto;
 import com.polime.enums.EHttpStatus;
+import com.polime.enums.EResponseCode;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -25,7 +26,7 @@ public class WebServer {
         this.server.setExecutor(null);
 
         this.server.createContext("/", exchange -> {
-            byte[] response = gson.toJson(new BaseResponseDto<Object>("Route Not Found", "NOT_FOUND"))
+            byte[] response = gson.toJson(new BaseResponseDto<Object>("Route Not Found", EResponseCode.NOT_FOUND))
                     .getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
             exchange.sendResponseHeaders(404, response.length);
@@ -46,7 +47,7 @@ public class WebServer {
 
                 try {
                     sendJsonResponse(exchange, EHttpStatus.INTERNAL_SERVER_ERROR.getCode(),
-                            new BaseResponseDto<Object>("Internal server error", "INTERNAL_ERROR"));
+                            new BaseResponseDto<Object>("Internal server error", EResponseCode.INTERNAL_ERROR));
                 } catch (IOException ioException) {
                     exchange.close();
                 }
