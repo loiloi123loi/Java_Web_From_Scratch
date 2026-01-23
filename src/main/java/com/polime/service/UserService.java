@@ -25,6 +25,7 @@ import com.polime.repository.RefreshTokenRepository;
 import com.polime.repository.UserRepository;
 import com.polime.utils.JwtUtils;
 import com.polime.utils.PasswordUtils;
+import com.polime.utils.TokenBlacklist;
 
 import io.jsonwebtoken.Claims;
 
@@ -124,8 +125,11 @@ public class UserService {
         }
     }
 
-    public BaseResponseDto<Object> logoutUser(UserLogoutDto dto, Long currentUserId) throws SQLException {
+    public BaseResponseDto<Object> logoutUser(UserLogoutDto dto, String accessToken, Claims accessClaims)
+            throws SQLException {
         try {
+            Long currentUserId = Long.parseLong(accessClaims.getSubject());
+
             Claims claims;
             try {
                 claims = JwtUtils.decodeToken(dto.getRefreshToken(), JwtUtils.getRefreshSecret());
@@ -145,6 +149,8 @@ public class UserService {
             DatabaseManager.beginTransaction();
 
             refreshTokenRepository.deleteByToken(dto.getRefreshToken());
+
+            TokenBlacklist.add(accessToken, accessClaims.getExpiration().getTime());
 
             DatabaseManager.commit();
 
