@@ -26,6 +26,7 @@ public class User {
             EUserVerifyStatus verifyStatus) {
         this.id = id;
         this.name = name;
+        this.username = username;
         this.email = email;
         this.dateOfBirth = dateOfBirth;
         this.password = password;

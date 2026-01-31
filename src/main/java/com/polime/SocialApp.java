@@ -8,7 +8,6 @@ import com.polime.repository.RefreshTokenRepository;
 import com.polime.repository.UserRepository;
 import com.polime.service.UserService;
 import com.polime.utils.JwtUtils;
-import com.polime.utils.PasswordUtils;
 
 public class SocialApp {
     private static final String BASE_PATH = "/api/v1";
@@ -24,7 +23,6 @@ public class SocialApp {
                     config.getProperty("db.password"));
             System.out.println("-> Database Manager Initialized");
 
-            PasswordUtils.setSecret(config.getProperty("auth.password_secret"));
             JwtUtils.init(config.getProperty("jwt.access_token_secret"),
                     config.getLongProperty("jwt.access_token_expires_in", 900000L),
                     config.getProperty("jwt.refresh_token_secret"),
