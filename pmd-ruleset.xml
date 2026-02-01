@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<ruleset name="Custom Ruleset"
+    xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>Only keep important rules, remove verbose design rules.</description>
+
+    <rule ref="category/java/errorprone.xml">
+        <exclude name="AvoidLiteralsInIfCondition" />
+        <exclude name="MissingSerialVersionUID" />
+        <exclude name="AvoidDuplicateLiterals" />
+    </rule>
+
+    <rule ref="category/java/design.xml">
+        <exclude name="LawOfDemeter" />
+        <exclude name="UseUtilityClass" />
+        <exclude name="ClassWithOnlyPrivateConstructorsShouldBeFinal" />
+        <exclude name="AvoidCatchingGenericException" />
+        <exclude name="DataClass" />
+        <exclude name="GodClass" />
+        <exclude name="TooManyMethods" />
+        <exclude name="CyclomaticComplexity" />
+        <exclude name="CognitiveComplexity" />
+        <exclude name="NPathComplexity" />
+        <exclude name="ExcessiveParameterList" />
+    </rule>
+
+</ruleset>

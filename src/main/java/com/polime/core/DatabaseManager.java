@@ -10,12 +10,16 @@ public class DatabaseManager {
     private static String password;
     private static final ThreadLocal<Connection> threadLocalConnection = new ThreadLocal<>();
 
+    private DatabaseManager() {
+    }
+
     public static void init(String url, String username, String password) {
         DatabaseManager.url = url;
         DatabaseManager.username = username;
         DatabaseManager.password = password;
     }
 
+    @SuppressWarnings("PMD.CloseResource")
     public static Connection getConnection() throws SQLException {
         Connection conn = threadLocalConnection.get();
         if (conn == null || conn.isClosed()) {
@@ -29,6 +33,7 @@ public class DatabaseManager {
         getConnection().setAutoCommit(false);
     }
 
+    @SuppressWarnings("PMD.CloseResource")
     public static void commit() throws SQLException {
         Connection conn = threadLocalConnection.get();
         if (conn != null && !conn.isClosed()) {
@@ -37,6 +42,7 @@ public class DatabaseManager {
         }
     }
 
+    @SuppressWarnings("PMD.CloseResource")
     public static void rollback() {
         Connection conn = threadLocalConnection.get();
         try {
@@ -49,6 +55,7 @@ public class DatabaseManager {
         }
     }
 
+    @SuppressWarnings("PMD.CloseResource")
     public static void closeConnection() {
         Connection conn = threadLocalConnection.get();
         try {

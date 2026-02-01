@@ -3,6 +3,7 @@ package com.polime.core;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import com.google.gson.Gson;
@@ -34,7 +35,7 @@ public abstract class BaseHandler implements HttpHandler {
     protected abstract void registerRoutes();
 
     protected void addRoute(String path, String method, RouteHandler handler) {
-        routes.computeIfAbsent(path, k -> new HashMap<>()).put(method.toUpperCase(), handler);
+        routes.computeIfAbsent(path, k -> new HashMap<>()).put(method.toUpperCase(Locale.ROOT), handler);
     }
 
     protected void get(String path, RouteHandler handler) {
@@ -76,7 +77,7 @@ public abstract class BaseHandler implements HttpHandler {
 
             Map<String, RouteHandler> methodHandlers = routes.get(path);
             if (methodHandlers != null) {
-                String method = exchange.getRequestMethod().toUpperCase();
+                String method = exchange.getRequestMethod().toUpperCase(Locale.ROOT);
                 RouteHandler handler = methodHandlers.get(method);
 
                 if (handler != null) {
