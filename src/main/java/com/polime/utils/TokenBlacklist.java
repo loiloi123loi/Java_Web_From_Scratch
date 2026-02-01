@@ -3,7 +3,10 @@ package com.polime.utils;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class TokenBlacklist {
+public final class TokenBlacklist {
+    private TokenBlacklist() {
+    }
+
     private static final Map<String, Long> revokedTokens = new ConcurrentHashMap<>();
 
     public static void add(String token, long expiryTime) {

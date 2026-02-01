@@ -6,10 +6,17 @@ import java.util.Date;
 import javax.crypto.SecretKey;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtBuilder;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.JwtParserBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
-public class JwtUtils {
+public final class JwtUtils {
+    private JwtUtils() {
+    }
+
     private static String accessSecret;
     private static String refreshSecret;
     private static String emailVerifySecret;
@@ -44,18 +51,39 @@ public class JwtUtils {
     }
 
     private static String createToken(Long userId, String verifyStatus, String secret, long expirationMs) {
-        return createToken(userId, verifyStatus, secret, new Date(System.currentTimeMillis() + expirationMs));
+        long currentMs = System.currentTimeMillis();
+        Date expDate = new Date(currentMs + expirationMs);
+        return createToken(userId, verifyStatus, secret, expDate);
     }
 
     private static String createToken(Long userId, String verifyStatus, String secret, Date expDate) {
-        SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        return Jwts.builder().subject(userId.toString()).claim("verify", verifyStatus).issuedAt(new Date())
-                .expiration(expDate).signWith(key).compact();
+        byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
+        SecretKey key = Keys.hmacShaKeyFor(secretBytes);
+        String subject = userId.toString();
+        Date now = new Date();
+
+        JwtBuilder builder = Jwts.builder();
+        builder.subject(subject);
+        builder.claim("verify", verifyStatus);
+        builder.issuedAt(now);
+        builder.expiration(expDate);
+        builder.signWith(key);
+
+        return builder.compact();
     }
 
     public static Claims decodeToken(String token, String secret) {
-        SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
+        byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
+        SecretKey key = Keys.hmacShaKeyFor(secretBytes);
+
+        JwtParserBuilder builder = Jwts.parser();
+        builder.verifyWith(key);
+
+        JwtParser parser = builder.build();
+        Jws<Claims> jws = parser.parseSignedClaims(token);
+        Claims payload = jws.getPayload();
+
+        return payload;
     }
 
     public static String getAccessSecret() {

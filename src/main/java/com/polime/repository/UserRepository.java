@@ -110,8 +110,8 @@ public class UserRepository {
 
 	public List<User> findAll() throws SQLException {
 		List<User> users = new ArrayList<>();
-		try (Statement stmt = getConnection().createStatement()) {
-			ResultSet rs = stmt.executeQuery("SELECT * FROM " + TABLE_NAME);
+		try (Statement stmt = getConnection().createStatement();
+				ResultSet rs = stmt.executeQuery("SELECT * FROM " + TABLE_NAME);) {
 			while (rs.next()) {
 				users.add(mapResultSetToUser(rs));
 			}
