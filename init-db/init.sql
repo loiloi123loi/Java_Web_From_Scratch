@@ -1,0 +1,4 @@
+CREATE DATABASE IF NOT EXISTS smart_class_dev;
+CREATE DATABASE IF NOT EXISTS smart_class_pro;
+CREATE DATABASE IF NOT EXISTS smart_class_test_1;
+CREATE DATABASE IF NOT EXISTS smart_class_test_2;

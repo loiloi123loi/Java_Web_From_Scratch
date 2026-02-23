@@ -52,3 +52,20 @@ profiles:
       url: jdbc:mysql://prod-db-server:3306/smart_class_db
       username: prod_user
       password: prod_secure_pass
+
+  docker:
+    server:
+      port: 8080
+    auth:
+      password_secret: "docker_secret_key_123"
+    jwt:
+      access_token_secret: "docker_access_token_secret_extra_long_key"
+      access_token_expires_in: 900000
+      refresh_token_secret: "docker_refresh_token_secret_extra_long_key"
+      refresh_token_expires_in: 2592000000
+      email_verify_token_secret: "docker_email_verify_token_secret_extra_long_key"
+      email_verify_token_expires_in: 604800000
+    db:
+      url: jdbc:mysql://db:3306/smart_class_db
+      username: root
+      password: root_password
