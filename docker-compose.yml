@@ -35,14 +35,12 @@ services:
     container_name: smart_class_dev
     ports:
       - "8081:8080"
+    env_file: .env
     environment:
       - APP_ENV=dev
       - DB_URL=jdbc:mysql://db:3306/smart_class_dev
-      - DB_USERNAME=root
-      - DB_PASSWORD=${DB_ROOT_PASSWORD:-root_password}
-      - JWT_ACCESS_TOKEN_SECRET=${JWT_ACCESS_TOKEN_SECRET}
-      - JWT_REFRESH_TOKEN_SECRET=${JWT_REFRESH_TOKEN_SECRET}
-      - JWT_EMAIL_VERIFY_TOKEN_SECRET=${JWT_EMAIL_VERIFY_TOKEN_SECRET}
+      - DB_USERNAME=${DB_DEV_USER:-dev_user}
+      - DB_PASSWORD=${DB_DEV_PASSWORD:-dev_password_123}
     depends_on:
       db:
         condition: service_healthy
@@ -53,14 +51,12 @@ services:
     container_name: smart_class_pro
     ports:
       - "8080:8080"
+    env_file: .env
     environment:
       - APP_ENV=prod
       - DB_URL=jdbc:mysql://db:3306/smart_class_pro
-      - DB_USERNAME=root
-      - DB_PASSWORD=${DB_ROOT_PASSWORD:-root_password}
-      - JWT_ACCESS_TOKEN_SECRET=${JWT_ACCESS_TOKEN_SECRET}
-      - JWT_REFRESH_TOKEN_SECRET=${JWT_REFRESH_TOKEN_SECRET}
-      - JWT_EMAIL_VERIFY_TOKEN_SECRET=${JWT_EMAIL_VERIFY_TOKEN_SECRET}
+      - DB_USERNAME=${DB_PRO_USER:-pro_user}
+      - DB_PASSWORD=${DB_PRO_PASSWORD:-pro_password_123}
     depends_on:
       db:
         condition: service_healthy

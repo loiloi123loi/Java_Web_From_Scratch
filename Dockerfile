@@ -1,12 +1,12 @@
 # Build stage
 FROM maven:3.9.6-eclipse-temurin-17-alpine AS build
 WORKDIR /app
-COPY pom.xml .
+COPY pom.xml checkstyle.xml pmd-ruleset.xml ./
 # Download dependencies for faster rebuilds
 RUN mvn dependency:go-offline -B
 COPY src ./src
 # Build the application
-RUN mvn clean package -DskipTests
+RUN mvn clean package -DskipTests -Dcheckstyle.skip -Dpmd.skip
 
 # Run stage
 FROM eclipse-temurin:17-jre-alpine

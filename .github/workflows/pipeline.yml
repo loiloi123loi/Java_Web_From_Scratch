@@ -41,12 +41,17 @@ jobs:
           DB_PASSWORD: root_password
           APP_ENV: local
         run: |
+          until mysqladmin ping -h 127.0.0.1 --silent; do
+            echo "Waiting for MySQL to be ready..."
+            sleep 2
+          done
+
           mysql -h 127.0.0.1 -u root -proot_password -e "CREATE DATABASE IF NOT EXISTS smart_class_test_1; CREATE DATABASE IF NOT EXISTS smart_class_test_2;"
 
-          export DB_URL="jdbc:mysql://localhost:3306/smart_class_test_1"
+          export DB_URL="jdbc:mysql://127.0.0.1:3306/smart_class_test_1"
           mvn clean verify -Dcheckstyle.skip -Dpmd.skip
 
-          export DB_URL="jdbc:mysql://localhost:3306/smart_class_test_2"
+          export DB_URL="jdbc:mysql://127.0.0.1:3306/smart_class_test_2"
           mvn test -Dcheckstyle.skip -Dpmd.skip
 
   docker:

@@ -1,0 +1,13 @@
+target/
+.git/
+.mvn/
+.vscode/
+.agent/
+*.log
+.env
+Dockerfile
+docker-compose.yml
+setup.sh
+README.md
+dependency-reduced-pom.xml
+formatter.xml
