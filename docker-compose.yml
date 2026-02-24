@@ -22,6 +22,9 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./init-db:/docker-entrypoint-initdb.d
+    networks:
+      - app_network
+    restart: always
 
   site-dev:
     image: ${DOCKER_IMAGE_NAME:-smart-class-app}:latest-dev
@@ -38,6 +41,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - app_network
+      - web_proxy
 
   site-pro:
     image: ${DOCKER_IMAGE_NAME:-smart-class-app}:latest
@@ -54,21 +60,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - app_network
+      - web_proxy
 
-  nginx:
-    image: nginx:latest
-    container_name: smart_class_nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    depends_on:
-      - site-pro
-      - site-dev
-    restart: always
+networks:
+  app_network:
+  web_proxy:
+    external: true
 
 volumes:
   mysql_data:

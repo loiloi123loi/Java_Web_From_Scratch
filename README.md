@@ -83,42 +83,51 @@ To enable automated deployment, add the following secrets to your GitHub reposit
 - `CLOUD_SSH_KEY`: Content of your Private SSH Key.
 - `CLOUD_PATH`: Absolute path to the project directory on the server (e.g., `/home/ubuntu/smart_class`).
 
-## 🛡️ Cloud Deployment Setup (Step-by-Step)
+## 🌐 Global Proxy Architecture (Recommended)
 
-Follow these steps for the first-time setup on your Cloud VPS:
+To manage multiple projects (Java, React, etc.) on a single server without port conflicts and to centralize SSL management, we use a **Standalone Global Proxy** architecture.
 
-### 1. Initial Server Setup
+### 1. Setup Global Proxy (One-time)
 
-```bash
-# 1. Clone your repository
-git clone <your-repo-url>
-cd smart_class
+Create a separate folder on your server (e.g., `~/global-proxy/`) carefully managed as an infrastructure layer:
 
-# 2. Run the setup script (Creates .env and nginx/conf.d)
-chmod +x setup.sh
-./setup.sh
+```yaml
+# ~/global-proxy/docker-compose.yml
+version: "3.8"
+services:
+  nginx:
+    image: nginx:latest
+    container_name: global_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./conf.d:/etc/nginx/conf.d
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    networks:
+      - web_proxy
+    restart: always
 
-# 3. Update secrets
-nano .env
+networks:
+  web_proxy:
+    name: web_proxy
 ```
 
-### 2. Manual Nginx Configuration
+_Run `docker-compose up -d` in this folder to start the gateway._
 
-Since domain-specific configs are gitignored, create the file manually:
+### 2. Connect Project to Proxy
 
-```bash
-nano nginx/conf.d/app.conf
-```
+The Smart Class project is pre-configured to join the external `web_proxy` network.
 
-_Paste your Nginx configuration (refer to the template in step 4)._
+1. Run `./setup.sh` to initialize `.env`.
+2. Start the project: `docker-compose up -d --build`.
 
-### 3. Start the System
+### 3. Add Project Configs
 
-```bash
-docker-compose up -d --build
-```
+Create separate `.conf` files in `~/global-proxy/conf.d/` for each site. This allows adding new projects (like a separate Admin page or a Blog) without touching existing ones.
 
-### 4. Nginx Configuration Template (Optimized Dual Site)
+**File: `app.conf`** (Gộp FE và BE chung 1 domain)
 
 ```nginx
 # =========================
@@ -138,7 +147,7 @@ server {
 }
 
 # =========================
-# PRO Site: example.com
+# PRO Site: HTTPS
 # =========================
 server {
     listen 443 ssl;
@@ -147,49 +156,45 @@ server {
     ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
 
-    location / {
+    location /api/ {
         proxy_pass http://smart_class_pro:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
-}
-
-# =========================
-# DEV Site: dev.example.com
-# =========================
-server {
-    listen 443 ssl;
-    server_name dev.example.com;
-
-    ssl_certificate /etc/letsencrypt/live/dev.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/dev.example.com/privkey.pem;
 
     location / {
-        proxy_pass http://smart_class_dev:8080;
+        proxy_pass http://react_container_name:3000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
     }
 }
 ```
 
-### 5. SSL with Certbot (Run for each domain)
+### 4. SSL Management
+
+Run Certbot once for each new domain. Certificates are stored in the global `certbot/conf` folder.
 
 ```bash
-# PRO Site
 docker run -it --rm --name certbot \
   -v "$(pwd)/certbot/conf:/etc/letsencrypt" \
   -v "$(pwd)/certbot/www:/var/www/certbot" \
   certbot/certbot certonly --webroot -w /var/www/certbot -d example.com
+```
 
-# DEV Site
-docker run -it --rm --name certbot \
-  -v "$(pwd)/certbot/conf:/etc/letsencrypt" \
-  -v "$(pwd)/certbot/www:/var/www/certbot" \
-  certbot/certbot certonly --webroot -w /var/www/certbot -d dev.example.com
+### 5. Apply Changes
+
+Whenever you add/modify a `.conf` file, reload Nginx without downtime:
+
+```bash
+docker exec global_nginx nginx -s reload
 ```
 
 ## 📜 Coding Standards
