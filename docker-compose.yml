@@ -27,8 +27,6 @@ services:
     image: ${DOCKER_IMAGE_NAME:-smart-class-app}:latest-dev
     build: .
     container_name: smart_class_dev
-    ports:
-      - "8081:8080"
     env_file: .env
     restart: always
     environment:
@@ -45,8 +43,6 @@ services:
     image: ${DOCKER_IMAGE_NAME:-smart-class-app}:latest
     build: .
     container_name: smart_class_pro
-    ports:
-      - "8080:8080"
     env_file: .env
     restart: always
     environment:
@@ -58,6 +54,21 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  nginx:
+    image: nginx:latest
+    container_name: smart_class_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    depends_on:
+      - smart_class_pro
+      - smart_class_dev
+    restart: always
 
 volumes:
   mysql_data:
