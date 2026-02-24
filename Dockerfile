@@ -6,7 +6,7 @@ COPY pom.xml checkstyle.xml pmd-ruleset.xml ./
 RUN mvn dependency:go-offline -B
 COPY src ./src
 # Build the application
-RUN mvn clean package -DskipTests -Dcheckstyle.skip -Dpmd.skip
+RUN mvn clean package -DskipTests -Dcheckstyle.skip -Dpmd.skip -Dexec.skip=true
 
 # Run stage
 FROM eclipse-temurin:17-jre-alpine
