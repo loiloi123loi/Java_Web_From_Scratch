@@ -8,10 +8,6 @@ else
     echo ".env exists."
 fi
 
-# Create necessary directories
-mkdir -p nginx/conf.d
-echo "Created nginx/conf.d directory."
-
 # Pre-flight checks
 command -v docker >/dev/null 2>&1 || { echo >&2 "Docker not found. Please install it."; exit 1; }
 command -v docker-compose >/dev/null 2>&1 || { echo >&2 "Docker-compose not found. Please install it."; exit 1; }

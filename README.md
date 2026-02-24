@@ -40,25 +40,25 @@ The project is organized using the standard Java Web pattern:
 
 ### 2. Local Setup (Docker)
 
-The fastest and most reliable way:
+The fastest way to run the project. Note: By default, ports are not mapped to avoid conflicts with the Global Proxy. For local testing, add `ports` to `docker-compose.yml`.
 
 ```bash
-# 1. Initialize the environment
+# 1. Initialize environment
 ./setup.sh
 
-# 2. Start the entire system
+# 2. Start services (For local access, map ports 8080/8081 in docker-compose)
 docker-compose up -d --build
 ```
 
-- **Production Site**: [http://localhost:8080](http://localhost:8080)
-- **Development Site**: [http://localhost:8081](http://localhost:8081)
-- **Database External Port**: `3307` (Default)
+- **Production API**: Accessed via Proxy or manual port mapping (default: `site-pro:8080`)
+- **Development API**: Accessed via Proxy or manual port mapping (default: `site-dev:8080`)
+- **Database Port**: `3307` (Default external port)
 
 ### 3. Manual Setup (Non-Docker)
 
-1. Set up a MySQL server and create a database named `smart_class_db`.
-2. Update `src/main/resources/application.yml` (`local` profile) with your database credentials.
-3. Run the following command:
+1. Set up a MySQL server and create a database named `smart_class_pro` and `smart_class_dev`.
+2. Update `src/main/resources/application.yml` with your credentials.
+3. Run using Maven:
 
 ```bash
 mvn clean compile exec:java -Dexec.mainClass="com.polime.SocialApp" -Dapp.env=local
@@ -83,78 +83,93 @@ To enable automated deployment, add the following secrets to your GitHub reposit
 - `CLOUD_SSH_KEY`: Content of your Private SSH Key.
 - `CLOUD_PATH`: Absolute path to the project directory on the server (e.g., `/home/ubuntu/smart_class`).
 
-## 🌐 Global Proxy Architecture (Recommended)
+## ☁️ Cloud Quick Start
 
-To manage multiple projects (Java, React, etc.) on a single server without port conflicts and to centralize SSL management, we use a **Standalone Global Proxy** architecture.
+To deploy on a fresh server, follow these simple steps:
 
-### 1. Setup Global Proxy (One-time)
+### Step 1: Initialize Infrastructure (One-time)
 
-Create a separate folder on your server (e.g., `~/global-proxy/`) carefully managed as an infrastructure layer:
+Copy the content of `infra-setup.sh` to your server and run:
 
-```yaml
-# ~/global-proxy/docker-compose.yml
-version: "3.8"
-services:
-  nginx:
-    image: nginx:latest
-    container_name: global_nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./conf.d:/etc/nginx/conf.d
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    networks:
-      - web_proxy
-    restart: always
-
-networks:
-  web_proxy:
-    name: web_proxy
+```bash
+chmod +x infra-setup.sh && ./infra-setup.sh
+cd ~/global-proxy && docker-compose up -d
 ```
 
-_Run `docker-compose up -d` in this folder to start the gateway._
+_This script automatically creates the `web_proxy` network, proxy directories, and a sample config._
 
-### 2. Connect Project to Proxy
+### Step 2: Setup Smart Class Project
 
-The Smart Class project is pre-configured to join the external `web_proxy` network.
+```bash
+cd ~/your-path/smart_class
+chmod +x setup.sh && ./setup.sh
+nano .env # Update DB_ROOT_PASSWORD and JWT_SECRET
+```
 
-1. Run `./setup.sh` to initialize `.env`.
-2. Start the project: `docker-compose up -d --build`.
+### Step 3: Launch
 
-### 3. Add Project Configs
+```bash
+docker-compose up -d --build
+```
 
-Create separate `.conf` files in `~/global-proxy/conf.d/` for each site. This allows adding new projects (like a separate Admin page or a Blog) without touching existing ones.
+---
 
-**File: `app.conf`** (Gộp FE và BE chung 1 domain)
+## 🛡️ Proxy & SSL Management (The Secure Way)
+
+Setting up SSL can be tricky because Nginx won't start if certificate files don't exist yet. Follow this **2-Phase** process:
+
+### Phase 1: HTTP Verification (Port 80)
+
+1. Modify `~/global-proxy/conf.d/app.conf` to use **HTTP only** first (the default in `infra-setup.sh`):
 
 ```nginx
-# =========================
-# HTTP -> HTTPS redirect
-# =========================
 server {
     listen 80;
-    server_name example.com dev.example.com;
-
+    server_name yourdomain.com;
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
     }
+    location / {
+        proxy_pass http://smart_class_pro:8080;
+    }
+}
+```
 
+2. Reload Nginx: `docker exec global_nginx nginx -s reload`
+
+### Phase 2: Obtain SSL & Enable HTTPS
+
+1. Obtain certificates using Certbot for both domains:
+
+```bash
+# Obtain certs for both Main and Dev domains
+docker run -it --rm --name certbot \
+  -v "$(pwd)/certbot/conf:/etc/letsencrypt" \
+  -v "$(pwd)/certbot/www:/var/www/certbot" \
+  certbot/certbot certonly --webroot -w /var/www/certbot -d yourdomain.com -d dev.yourdomain.com
+```
+
+2. Once successful, update `~/global-proxy/conf.d/app.conf` to use **HTTPS** for both sites:
+
+```nginx
+# HTTP Redirect for all domains
+server {
+    listen 80;
+    server_name yourdomain.com dev.yourdomain.com;
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
     location / {
         return 301 https://$host$request_uri;
     }
 }
 
-# =========================
-# PRO Site: HTTPS
-# =========================
+# PRO Site (Main Domain)
 server {
     listen 443 ssl;
-    server_name example.com;
-
-    ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+    server_name yourdomain.com;
+    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
 
     location /api/ {
         proxy_pass http://smart_class_pro:8080;
@@ -163,39 +178,32 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
-
     location / {
-        proxy_pass http://react_container_name:3000;
+        proxy_pass http://react_pro_container:3000; # Production FE
+    }
+}
+
+# DEV Site (Development Domain)
+server {
+    listen 443 ssl;
+    server_name dev.yourdomain.com;
+    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+
+    location /api/ {
+        proxy_pass http://smart_class_dev:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+    }
+    location / {
+        proxy_pass http://react_dev_container:3000; # Development FE
     }
 }
 ```
 
-### 4. SSL Management
-
-Run Certbot once for each new domain. Certificates are stored in the global `certbot/conf` folder.
-
-```bash
-docker run -it --rm --name certbot \
-  -v "$(pwd)/certbot/conf:/etc/letsencrypt" \
-  -v "$(pwd)/certbot/www:/var/www/certbot" \
-  certbot/certbot certonly --webroot -w /var/www/certbot -d example.com
-```
-
-### 5. Apply Changes
-
-Whenever you add/modify a `.conf` file, reload Nginx without downtime:
-
-```bash
-docker exec global_nginx nginx -s reload
-```
+3. Reload Nginx: `docker exec global_nginx nginx -s reload`
 
 ## 📜 Coding Standards
 
