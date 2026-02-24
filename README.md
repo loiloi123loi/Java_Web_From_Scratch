@@ -83,6 +83,88 @@ To enable automated deployment, add the following secrets to your GitHub reposit
 - `CLOUD_SSH_KEY`: Content of your Private SSH Key.
 - `CLOUD_PATH`: Absolute path to the project directory on the server (e.g., `/home/ubuntu/smart_class`).
 
+## 🛡️ Cloud Deployment Setup (Step-by-Step)
+
+Follow these steps for the first-time setup on your Cloud VPS:
+
+### 1. Initial Server Setup
+
+```bash
+# 1. Clone your repository
+git clone <your-repo-url>
+cd smart_class
+
+# 2. Run the setup script (Creates .env and nginx/conf.d)
+chmod +x setup.sh
+./setup.sh
+
+# 3. Update secrets
+nano .env
+```
+
+### 2. Manual Nginx Configuration
+
+Since domain-specific configs are gitignored, create the file manually:
+
+```bash
+nano nginx/conf.d/app.conf
+```
+
+_Paste your Nginx configuration (refer to the template in step 4)._
+
+### 3. Start the System
+
+```bash
+docker-compose up -d --build
+```
+
+### 4. Nginx Configuration Template (HTTPS)
+
+```nginx
+# PRO Site: example.com
+server {
+    listen 80;
+    server_name example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name example.com;
+
+    ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://{{your-domain}}:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /api/ {
+        proxy_pass http://{{your-domain}}:8080/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+### 5. SSL with Certbot (Optional)
+
+If you don't have certificates yet, use the pre-configured `certbot` volume:
+
+```bash
+# PRO Site: example.com
+docker run -it --rm --name certbot \
+  -v "$(pwd)/certbot/conf:/etc/letsencrypt" \
+  -v "$(pwd)/certbot/www:/var/www/certbot" \
+  certbot/certbot certonly --webroot -w /var/www/certbot -d example.com
+```
+
 ## 📜 Coding Standards
 
 - **SQL**: Always uppercase keywords (`SELECT`, `INSERT`, `FROM`).

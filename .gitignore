@@ -68,3 +68,7 @@ ehthumbs.db
 Thumbs.db
 
 .env
+
+# Cloud Config (Should be manual)
+nginx/conf.d/
+certbot/
