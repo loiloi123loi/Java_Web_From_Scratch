@@ -29,8 +29,10 @@ services:
     ports:
       - "8081:8080"
     env_file: .env
+    restart: always
     environment:
       - APP_ENV=dev
+      - SERVER_PORT=8080
       - DB_URL=jdbc:mysql://db:3306/smart_class_dev
       - DB_USERNAME=${DB_DEV_USER:-dev_user}
       - DB_PASSWORD=${DB_DEV_PASSWORD:-dev_password_123}
@@ -45,8 +47,10 @@ services:
     ports:
       - "8080:8080"
     env_file: .env
+    restart: always
     environment:
       - APP_ENV=prod
+      - SERVER_PORT=8080
       - DB_URL=jdbc:mysql://db:3306/smart_class_pro
       - DB_USERNAME=${DB_PRO_USER:-pro_user}
       - DB_PASSWORD=${DB_PRO_PASSWORD:-pro_password_123}
