@@ -118,16 +118,28 @@ _Paste your Nginx configuration (refer to the template in step 4)._
 docker-compose up -d --build
 ```
 
-### 4. Nginx Configuration Template (HTTPS)
+### 4. Nginx Configuration Template (Optimized Dual Site)
 
 ```nginx
-# PRO Site: example.com
+# =========================
+# HTTP -> HTTPS redirect
+# =========================
 server {
     listen 80;
-    server_name example.com;
-    return 301 https://$host$request_uri;
+    server_name example.com dev.example.com;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
 }
 
+# =========================
+# PRO Site: example.com
+# =========================
 server {
     listen 443 ssl;
     server_name example.com;
@@ -136,15 +148,26 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
 
     location / {
-        proxy_pass http://{{your-domain}}:8080;
+        proxy_pass http://smart_class_pro:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
+}
 
-    location /api/ {
-        proxy_pass http://{{your-domain}}:8080/api/;
+# =========================
+# DEV Site: dev.example.com
+# =========================
+server {
+    listen 443 ssl;
+    server_name dev.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/dev.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/dev.example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://smart_class_dev:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -153,16 +176,20 @@ server {
 }
 ```
 
-### 5. SSL with Certbot (Optional)
-
-If you don't have certificates yet, use the pre-configured `certbot` volume:
+### 5. SSL with Certbot (Run for each domain)
 
 ```bash
-# PRO Site: example.com
+# PRO Site
 docker run -it --rm --name certbot \
   -v "$(pwd)/certbot/conf:/etc/letsencrypt" \
   -v "$(pwd)/certbot/www:/var/www/certbot" \
   certbot/certbot certonly --webroot -w /var/www/certbot -d example.com
+
+# DEV Site
+docker run -it --rm --name certbot \
+  -v "$(pwd)/certbot/conf:/etc/letsencrypt" \
+  -v "$(pwd)/certbot/www:/var/www/certbot" \
+  certbot/certbot certonly --webroot -w /var/www/certbot -d dev.example.com
 ```
 
 ## 📜 Coding Standards
