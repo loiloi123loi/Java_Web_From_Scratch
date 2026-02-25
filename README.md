@@ -71,8 +71,8 @@ The project is fully automated via GitHub Actions (`pipeline.yml`).
 ### Automated Workflow:
 
 1. **Push Code**: Automatically runs Checkstyle, PMD, and Unit Tests.
-2. **Build Image**: If tests pass, packages the application into a Docker Image and pushes it to GitHub Container Registry (GHCR).
-3. **Deploy**: Automatically SSHs into your Cloud server, pulls the latest image, and restarts the containers.
+2. **Build Image**: If tests pass, packages the application into a Docker Image and pushes it to **Docker Hub**.
+3. **Deploy**: Automatically SSHs into your Cloud server, performs `docker login`, pulls the latest image (`docker-compose pull`), and restarts the containers.
 
 ### Required GitHub Secrets:
 
@@ -82,6 +82,10 @@ To enable automated deployment, add the following secrets to your GitHub reposit
 - `CLOUD_USER`: SSH username (e.g., root, ubuntu).
 - `CLOUD_SSH_KEY`: Content of your Private SSH Key.
 - `CLOUD_PATH`: Absolute path to the project directory on the server (e.g., `/home/ubuntu/smart_class`).
+- `DOCKERHUB_USERNAME`: Your Docker Hub username.
+- `DOCKERHUB_TOKEN`: Your Docker Hub Personal Access Token (PAT).
+
+> **Note on Security**: To allow GitHub Actions to SSH into your server, ensure you have added the corresponding Public Key to `~/.ssh/authorized_keys` on your cloud server. If your cloud provider has a firewall (Security Group), you must allow inbound traffic on port 22.
 
 ## ☁️ Cloud Quick Start
 

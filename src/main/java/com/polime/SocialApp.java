@@ -31,6 +31,7 @@ public class SocialApp {
                     config.getLongProperty("jwt.email_verify_token_expires_in", 604800000L));
 
             int port = config.getIntProperty("server.port", 8080);
+            WebServer.setAllowedOrigins(config.getProperty("server.cors.allow_origin", "http://localhost:3000"));
 
             UserRepository userRepository = new UserRepository();
             userRepository.initTable();

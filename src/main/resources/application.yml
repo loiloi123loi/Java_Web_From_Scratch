@@ -1,10 +1,14 @@
 server:
   port: 8080
+  cors:
+    allow_origin: "http://localhost:3000, http://localhost:5173"
 
 profiles:
   local:
     server:
       port: 8080
+      cors:
+        allow_origin: "http://localhost:3000, http://localhost:5173"
     auth:
       password_secret: "my_super_secret_key_123"
     jwt:
@@ -22,6 +26,8 @@ profiles:
   dev:
     server:
       port: 8080
+      cors:
+        allow_origin: "http://dev.example.com"
     auth:
       password_secret: "my_super_secret_key_123"
     jwt:
@@ -39,6 +45,8 @@ profiles:
   prod:
     server:
       port: 8080
+      cors:
+        allow_origin: "https://example.com"
     auth:
       password_secret: "my_super_secret_key_123"
     jwt:
@@ -56,6 +64,8 @@ profiles:
   docker:
     server:
       port: 8080
+      cors:
+        allow_origin: "*"
     auth:
       password_secret: "docker_secret_key_123"
     jwt:
