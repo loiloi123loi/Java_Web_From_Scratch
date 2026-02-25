@@ -38,16 +38,15 @@ public class UserServiceTest extends BaseServiceTest {
     @Override
     public void runAllTests() {
         printHeader("UserService - registerUser()");
-
-        testRegisterUser_Success();
-        testRegisterUser_EmailAlreadyExists();
-        testRegisterUser_ShouldSetCorrectUsername();
-        testRegisterUser_ShouldGenerateEmailVerifyToken();
-        testRegisterUser_ShouldHashPassword();
-        testRegisterUser_TokensShouldBeDifferent();
-        testRegisterUser_ShouldSaveRefreshToken();
-        testRegisterUser_MultipleUsersWithDifferentEmails();
-        testRegisterUser_ShouldSaveCorrectUserInfo();
+        runTest("registerUser_Success", this::registerUser_Success);
+        runTest("registerUser_EmailAlreadyExists", this::registerUser_EmailAlreadyExists);
+        runTest("registerUser_ShouldSetCorrectUsername", this::registerUser_ShouldSetCorrectUsername);
+        runTest("registerUser_ShouldGenerateEmailVerifyToken", this::registerUser_ShouldGenerateEmailVerifyToken);
+        runTest("registerUser_ShouldHashPassword", this::registerUser_ShouldHashPassword);
+        runTest("registerUser_TokensShouldBeDifferent", this::registerUser_TokensShouldBeDifferent);
+        runTest("registerUser_ShouldSaveRefreshToken", this::registerUser_ShouldSaveRefreshToken);
+        runTest("registerUser_MultipleUsersWithDifferentEmails", this::registerUser_MultipleUsersWithDifferentEmails);
+        runTest("registerUser_ShouldSaveCorrectUserInfo", this::registerUser_ShouldSaveCorrectUserInfo);
     }
 
     public void clearDatabase() throws Exception {
@@ -58,141 +57,123 @@ public class UserServiceTest extends BaseServiceTest {
         }
     }
 
-    public void testRegisterUser_Success() {
-        runTest("registerUser_Success", () -> {
-            UserRegisterDto dto = createValidRegisterDto();
+    public void registerUser_Success() throws Throwable {
+        UserRegisterDto dto = createValidRegisterDto();
 
-            BaseResponseDto<UserRegisterResponseDto> response = userService.registerUser(dto);
+        BaseResponseDto<UserRegisterResponseDto> response = userService.registerUser(dto);
 
-            assertNotNull(response);
-            assertEquals(EResponseCode.SUCCESS, response.getCode());
-            assertEquals("User registered successfully", response.getMessage());
-            assertNotNull(response.getResult());
-            assertNotNull(response.getResult().getAccessToken());
-            assertNotNull(response.getResult().getRefreshToken());
-        });
+        assertNotNull(response);
+        assertEquals(EResponseCode.SUCCESS, response.getCode());
+        assertEquals("User registered successfully", response.getMessage());
+        assertNotNull(response.getResult());
+        assertNotNull(response.getResult().getAccessToken());
+        assertNotNull(response.getResult().getRefreshToken());
     }
 
-    public void testRegisterUser_EmailAlreadyExists() {
-        runTest("registerUser_EmailAlreadyExists", () -> {
-            UserRegisterDto firstDto = createValidRegisterDto();
-            userService.registerUser(firstDto);
+    public void registerUser_EmailAlreadyExists() throws Throwable {
+        UserRegisterDto firstDto = createValidRegisterDto();
+        userService.registerUser(firstDto);
 
-            UserRegisterDto duplicateDto = createValidRegisterDto();
-            duplicateDto.setName("Another User");
+        UserRegisterDto duplicateDto = createValidRegisterDto();
+        duplicateDto.setName("Another User");
 
-            DuplicateResourceException exception = assertThrows(DuplicateResourceException.class,
-                    () -> userService.registerUser(duplicateDto));
-            assertEquals("Email already exists", exception.getMessage());
-        });
+        DuplicateResourceException exception = assertThrows(DuplicateResourceException.class,
+                () -> userService.registerUser(duplicateDto));
+        assertEquals("Email already exists", exception.getMessage());
     }
 
-    public void testRegisterUser_ShouldSetCorrectUsername() {
-        runTest("registerUser_ShouldSetCorrectUsername", () -> {
-            UserRegisterDto dto = createValidRegisterDto();
+    public void registerUser_ShouldSetCorrectUsername() throws Throwable {
+        UserRegisterDto dto = createValidRegisterDto();
 
-            userService.registerUser(dto);
+        userService.registerUser(dto);
 
-            User savedUser = userRepository.findByEmail(dto.getEmail());
-            assertNotNull(savedUser);
-            assertTrue(savedUser.getUsername().startsWith("User"));
-            assertEquals("User" + savedUser.getId(), savedUser.getUsername());
-        });
+        User savedUser = userRepository.findByEmail(dto.getEmail());
+        assertNotNull(savedUser);
+        assertTrue(savedUser.getUsername().startsWith("User"));
+        assertEquals("User" + savedUser.getId(), savedUser.getUsername());
     }
 
-    public void testRegisterUser_ShouldGenerateEmailVerifyToken() {
-        runTest("registerUser_ShouldGenerateEmailVerifyToken", () -> {
-            UserRegisterDto dto = createValidRegisterDto();
+    public void registerUser_ShouldGenerateEmailVerifyToken() throws Throwable {
+        UserRegisterDto dto = createValidRegisterDto();
 
-            userService.registerUser(dto);
+        userService.registerUser(dto);
 
-            User savedUser = userRepository.findByEmail(dto.getEmail());
-            assertNotNull(savedUser);
-            assertNotNull(savedUser.getEmailVerifyToken());
-            assertTrue(savedUser.getEmailVerifyToken().length() > 0);
-        });
+        User savedUser = userRepository.findByEmail(dto.getEmail());
+        assertNotNull(savedUser);
+        assertNotNull(savedUser.getEmailVerifyToken());
+        assertTrue(savedUser.getEmailVerifyToken().length() > 0);
     }
 
-    public void testRegisterUser_ShouldHashPassword() {
-        runTest("registerUser_ShouldHashPassword", () -> {
-            UserRegisterDto dto = createValidRegisterDto();
-            String plainPassword = dto.getPassword();
+    public void registerUser_ShouldHashPassword() throws Throwable {
+        UserRegisterDto dto = createValidRegisterDto();
+        String plainPassword = dto.getPassword();
 
-            userService.registerUser(dto);
+        userService.registerUser(dto);
 
-            User savedUser = userRepository.findByEmail(dto.getEmail());
-            assertNotNull(savedUser);
-            assertTrue(!plainPassword.equals(savedUser.getPassword()));
-            assertTrue(savedUser.getPassword().startsWith("$2"));
-        });
+        User savedUser = userRepository.findByEmail(dto.getEmail());
+        assertNotNull(savedUser);
+        assertTrue(!plainPassword.equals(savedUser.getPassword()));
+        assertTrue(savedUser.getPassword().startsWith("$2"));
     }
 
-    public void testRegisterUser_TokensShouldBeDifferent() {
-        runTest("registerUser_TokensShouldBeDifferent", () -> {
-            UserRegisterDto dto = createValidRegisterDto();
+    public void registerUser_TokensShouldBeDifferent() throws Throwable {
+        UserRegisterDto dto = createValidRegisterDto();
 
-            BaseResponseDto<UserRegisterResponseDto> response = userService.registerUser(dto);
+        BaseResponseDto<UserRegisterResponseDto> response = userService.registerUser(dto);
 
-            assertNotNull(response.getResult());
-            String accessToken = response.getResult().getAccessToken();
-            String refreshToken = response.getResult().getRefreshToken();
+        assertNotNull(response.getResult());
+        String accessToken = response.getResult().getAccessToken();
+        String refreshToken = response.getResult().getRefreshToken();
 
-            assertNotNull(accessToken);
-            assertNotNull(refreshToken);
-            assertTrue(!accessToken.equals(refreshToken));
-        });
+        assertNotNull(accessToken);
+        assertNotNull(refreshToken);
+        assertTrue(!accessToken.equals(refreshToken));
     }
 
-    public void testRegisterUser_ShouldSaveRefreshToken() {
-        runTest("registerUser_ShouldSaveRefreshToken", () -> {
-            UserRegisterDto dto = createValidRegisterDto();
+    public void registerUser_ShouldSaveRefreshToken() throws Throwable {
+        UserRegisterDto dto = createValidRegisterDto();
 
-            BaseResponseDto<UserRegisterResponseDto> response = userService.registerUser(dto);
+        BaseResponseDto<UserRegisterResponseDto> response = userService.registerUser(dto);
 
-            String refreshToken = response.getResult().getRefreshToken();
-            boolean exists = refreshTokenRepository.existsByToken(refreshToken);
-            assertTrue(exists);
-        });
+        String refreshToken = response.getResult().getRefreshToken();
+        boolean exists = refreshTokenRepository.existsByToken(refreshToken);
+        assertTrue(exists);
     }
 
-    public void testRegisterUser_MultipleUsersWithDifferentEmails() {
-        runTest("registerUser_MultipleUsersWithDifferentEmails", () -> {
-            UserRegisterDto dto1 = createValidRegisterDto();
-            dto1.setEmail("user1@example.com");
+    public void registerUser_MultipleUsersWithDifferentEmails() throws Throwable {
+        UserRegisterDto dto1 = createValidRegisterDto();
+        dto1.setEmail("user1@example.com");
 
-            UserRegisterDto dto2 = createValidRegisterDto();
-            dto2.setEmail("user2@example.com");
+        UserRegisterDto dto2 = createValidRegisterDto();
+        dto2.setEmail("user2@example.com");
 
-            BaseResponseDto<UserRegisterResponseDto> response1 = userService.registerUser(dto1);
-            BaseResponseDto<UserRegisterResponseDto> response2 = userService.registerUser(dto2);
+        BaseResponseDto<UserRegisterResponseDto> response1 = userService.registerUser(dto1);
+        BaseResponseDto<UserRegisterResponseDto> response2 = userService.registerUser(dto2);
 
-            assertEquals(EResponseCode.SUCCESS, response1.getCode());
-            assertEquals(EResponseCode.SUCCESS, response2.getCode());
+        assertEquals(EResponseCode.SUCCESS, response1.getCode());
+        assertEquals(EResponseCode.SUCCESS, response2.getCode());
 
-            User user1 = userRepository.findByEmail("user1@example.com");
-            User user2 = userRepository.findByEmail("user2@example.com");
+        User user1 = userRepository.findByEmail("user1@example.com");
+        User user2 = userRepository.findByEmail("user2@example.com");
 
-            assertNotNull(user1);
-            assertNotNull(user2);
-            assertTrue(!user1.getId().equals(user2.getId()));
-        });
+        assertNotNull(user1);
+        assertNotNull(user2);
+        assertTrue(!user1.getId().equals(user2.getId()));
     }
 
-    public void testRegisterUser_ShouldSaveCorrectUserInfo() {
-        runTest("registerUser_ShouldSaveCorrectUserInfo", () -> {
-            UserRegisterDto dto = createValidRegisterDto();
-            dto.setName("John Doe");
-            dto.setEmail("john.doe@example.com");
-            dto.setDateOfBirth(LocalDate.of(1990, 5, 20));
+    public void registerUser_ShouldSaveCorrectUserInfo() throws Throwable {
+        UserRegisterDto dto = createValidRegisterDto();
+        dto.setName("John Doe");
+        dto.setEmail("john.doe@example.com");
+        dto.setDateOfBirth(LocalDate.of(1990, 5, 20));
 
-            userService.registerUser(dto);
+        userService.registerUser(dto);
 
-            User savedUser = userRepository.findByEmail("john.doe@example.com");
-            assertNotNull(savedUser);
-            assertEquals("John Doe", savedUser.getName());
-            assertEquals("john.doe@example.com", savedUser.getEmail());
-            assertEquals(LocalDate.of(1990, 5, 20), savedUser.getDateOfBirth());
-        });
+        User savedUser = userRepository.findByEmail("john.doe@example.com");
+        assertNotNull(savedUser);
+        assertEquals("John Doe", savedUser.getName());
+        assertEquals("john.doe@example.com", savedUser.getEmail());
+        assertEquals(LocalDate.of(1990, 5, 20), savedUser.getDateOfBirth());
     }
 
     private UserRegisterDto createValidRegisterDto() {

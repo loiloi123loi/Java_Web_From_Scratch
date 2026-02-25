@@ -10,6 +10,7 @@ import java.util.Set;
 
 import com.polime.core.AppConfig;
 import com.polime.core.DatabaseManager;
+import com.polime.dto.user.request.UserRegisterDtoTest;
 import com.polime.service.UserServiceTest;
 import com.polime.utils.JwtUtils;
 
@@ -56,6 +57,7 @@ public class TestRunner {
         System.out.println("╚════════════════════════════════════════╝\n");
 
         registerTest(new UserServiceTest());
+        registerTest(new UserRegisterDtoTest());
 
         if (args.length == 0) {
             runAllTests();
