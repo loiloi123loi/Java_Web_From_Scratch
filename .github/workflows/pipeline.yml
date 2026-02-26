@@ -57,7 +57,7 @@ jobs:
   docker:
     name: Build & Publish Image
     needs: validate
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/ci_cd')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -80,7 +80,7 @@ jobs:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/smart-class-app
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
-            type=raw,value=latest-dev,enable=${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/ci_cd' }}
+            type=raw,value=latest-dev,enable=${{ github.ref == 'refs/heads/develop' }}
             type=sha
 
       - name: Build and push Docker image
@@ -94,7 +94,7 @@ jobs:
   deploy:
     name: Deploy to cloud
     needs: docker
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/ci_cd')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
     steps:
       - name: SSH and Deploy
