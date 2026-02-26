@@ -142,3 +142,48 @@ jobs:
             $DOCKER_CMD up -d --remove-orphans
 
             docker image prune -f
+
+            docker image prune -f
+
+  notify:
+    name: Discord Notification
+    needs: [validate, docker, deploy]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord Notification
+        run: |
+          VALIDATE_ST="${{ needs.validate.result }}"
+          DOCKER_ST="${{ needs.docker.result == 'skipped' && 'success' || needs.docker.result }}"
+          DEPLOY_ST="${{ needs.deploy.result == 'skipped' && 'success' || needs.deploy.result }}"
+
+          COLOR="3066993"
+          ICON="🚀"
+          TITLE="Pipeline Processed"
+
+          if [[ "$VALIDATE_ST" == "failure" || "$DOCKER_ST" == "failure" || "$DEPLOY_ST" == "failure" ]]; then
+            COLOR="15158332"
+            ICON="❌"
+            TITLE="Pipeline Failed"
+          elif [[ "$VALIDATE_ST" == "cancelled" || "$DOCKER_ST" == "cancelled" || "$DEPLOY_ST" == "cancelled" ]]; then
+            COLOR="16776960"
+            ICON="⚠️"
+            TITLE="Pipeline Cancelled"
+          fi
+
+          curl -H "Content-Type: application/json" \
+          -X POST \
+          -d "{
+            \"embeds\": [{
+              \"title\": \"$ICON $TITLE\",
+              \"description\": \"**Repo:** ${{ github.repository }}\\n**Branch:** \`${{ github.ref_name }}\`\\n**Commit:** [\`${{ github.sha }}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})\",
+              \"color\": $COLOR,
+              \"fields\": [
+                { \"name\": \"Test & Lint\", \"value\": \"\`$VALIDATE_ST\`\", \"inline\": true },
+                { \"name\": \"Docker Hub\", \"value\": \"\`$DOCKER_ST\`\", \"inline\": true },
+                { \"name\": \"VPS Deploy\", \"value\": \"\`$DEPLOY_ST\`\", \"inline\": true }
+              ],
+              \"timestamp\": \"$(date -u +'%Y-%m-%dT%H:%M:%SZ')\"
+            }]
+          }" \
+          ${{ secrets.DISCORD_WEBHOOK }}
