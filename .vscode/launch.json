@@ -10,11 +10,12 @@
     },
     {
       "type": "java",
-      "name": "SocialApp",
+      "name": "Run Test",
       "request": "launch",
-      "mainClass": "com.polime.SocialApp",
-      "projectName": "social_app_manual",
-      "cwd": "${workspaceFolder}"
+      "mainClass": "com.polime.test.TestRunner",
+      "vmArgs": "-javaagent:${workspaceFolder}/target/jacoco-agent.jar=destfile=${workspaceFolder}/target/jacoco.exec",
+      "args": [],
+      "projectName": "smart_class"
     }
   ]
 }

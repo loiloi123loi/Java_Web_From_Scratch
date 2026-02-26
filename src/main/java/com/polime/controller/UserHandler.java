@@ -18,7 +18,6 @@ import com.polime.dto.user.request.UserRegisterDto;
 import com.polime.enums.EHttpStatus;
 import com.polime.service.UserService;
 import com.polime.utils.LocalDateAdapter;
-import com.polime.utils.TokenBlacklist;
 import com.sun.net.httpserver.HttpExchange;
 
 import io.jsonwebtoken.Claims;
@@ -59,17 +58,13 @@ public class UserHandler extends BaseHandler {
     private void handleLogout(HttpExchange exchange) throws IOException, SQLException {
         authenticate(exchange);
         Claims claims = (Claims) exchange.getAttribute(AppConstants.DECODED_AUTHORIZATION);
-        Long userId = Long.parseLong(claims.getSubject());
-
         String authHeader = exchange.getRequestHeaders().getFirst("Authorization");
         String accessToken = authHeader.substring(7).trim();
 
         UserLogoutDto dto = getBody(exchange, gson, UserLogoutDto.class);
         dto.validate();
 
-        BaseResponseDto<Object> response = userService.logoutUser(dto, userId);
-
-        TokenBlacklist.add(accessToken, claims.getExpiration().getTime());
+        BaseResponseDto<Object> response = userService.logoutUser(dto, accessToken, claims);
 
         WebServer.sendJsonResponse(exchange, EHttpStatus.OK.getCode(), response);
     }

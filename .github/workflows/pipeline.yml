@@ -1,0 +1,205 @@
+name: Smart Class Pipeline
+
+on:
+  push:
+    branches: [master, develop, ci_cd]
+  pull_request:
+    branches: [master, develop, ci_cd]
+
+jobs:
+  validate:
+    name: Test & Lint
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:9.1.0
+        env:
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_DATABASE: smart_class_db
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: "maven"
+
+      - name: Run Style & Quality Check
+        run: mvn checkstyle:check pmd:check
+
+      - name: Build and Run Tests (Double DB Check)
+        env:
+          DB_USERNAME: root
+          DB_PASSWORD: root_password
+          APP_ENV: local
+        run: |
+          until mysqladmin ping -h 127.0.0.1 --silent; do
+            echo "Waiting for MySQL to be ready..."
+            sleep 2
+          done
+
+          mysql -h 127.0.0.1 -u root -proot_password -e "CREATE DATABASE IF NOT EXISTS smart_class_test_1; CREATE DATABASE IF NOT EXISTS smart_class_test_2;"
+
+          export DB_URL="jdbc:mysql://127.0.0.1:3306/smart_class_test_1"
+          mvn clean verify -Dcheckstyle.skip -Dpmd.skip
+
+          export DB_URL="jdbc:mysql://127.0.0.1:3306/smart_class_test_2"
+          mvn test -Dcheckstyle.skip -Dpmd.skip
+
+  docker:
+    name: Build & Publish Image
+    needs: validate
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/ci_cd')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/smart-class-app
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
+            type=raw,value=latest-dev,enable=${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/ci_cd' }}
+            type=sha
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    name: Deploy to cloud
+    needs: docker
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/ci_cd')
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH and Deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.CLOUD_HOST }}
+          username: ${{ secrets.CLOUD_USER }}
+          key: ${{ secrets.CLOUD_SSH_KEY }}
+          envs: GITHUB_REPOSITORY
+          script: |
+            REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+            export GITHUB_REPOSITORY_LOWER=$REPO_LOWER
+
+            mkdir -p ${{ secrets.CLOUD_PATH }}
+            cd ${{ secrets.CLOUD_PATH }}
+
+            if [ ! -d ".git" ]; then
+              echo "🚀 Cloning repository for the first time..."
+              git clone -b ${{ github.ref_name }} https://github.com/${{ github.repository }}.git .
+            else
+              echo "🔄 Updating existing repository..."
+              git fetch origin
+              git checkout ${{ github.ref_name }}
+              git reset --hard origin/${{ github.ref_name }}
+            fi
+
+            if [ ! -f .env ]; then
+              cp .env.example .env
+              echo "⚠️ .env created from .env.example."
+            fi
+
+            echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
+            export DOCKER_IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/smart-class-app"
+
+            if docker compose version >/dev/null 2>&1; then
+              DOCKER_CMD="docker compose"
+            else
+              DOCKER_CMD="docker-compose"
+            fi
+
+            echo "Using command: $DOCKER_CMD"
+            $DOCKER_CMD pull
+            $DOCKER_CMD down --remove-orphans || true
+            $DOCKER_CMD up -d --remove-orphans
+
+            docker image prune -f
+
+            docker image prune -f
+
+  notify:
+    name: Discord Notification
+    needs: [validate, docker, deploy]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord Notification
+        run: |
+          VAL_RES="${{ needs.validate.result }}"
+          DOC_RES="${{ needs.docker.result }}"
+          DEP_RES="${{ needs.deploy.result }}"
+
+          get_icon() {
+            case "$1" in
+              success) echo "✅ success" ;;
+              failure) echo "❌ failure" ;;
+              cancelled) echo "⚠️ cancelled" ;;
+              skipped) echo "⏩ skipped" ;;
+              *) echo "❓ $1" ;;
+            esac
+          }
+
+          ST_VAL=$(get_icon "$VAL_RES")
+          ST_DOC=$(get_icon "$DOC_RES")
+          ST_DEP=$(get_icon "$DEP_RES")
+
+          COLOR="3066993"
+          TITLE="Pipeline Successful"
+
+          if [[ "$VAL_RES" == "failure" || "$DOC_RES" == "failure" || "$DEP_RES" == "failure" ]]; then
+            COLOR="15158332"
+            TITLE="Pipeline Failed"
+          elif [[ "$VAL_RES" == "cancelled" || "$DOC_RES" == "cancelled" || "$DEP_RES" == "cancelled" ]]; then
+            COLOR="16776960"
+            TITLE="Pipeline Cancelled"
+          fi
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+             TITLE="Pull Request Validation"
+          fi
+
+          curl -H "Content-Type: application/json" \
+          -X POST \
+          -d "{
+            \"embeds\": [{
+              \"title\": \"$TITLE\",
+              \"description\": \"**Repo:** ${{ github.repository }}\\n**Branch:** \`${{ github.ref_name }}\`\\n**Event:** \`${{ github.event_name }}\`\\n**Commit:** [\`${{ github.sha }}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})\",
+              \"color\": $COLOR,
+              \"fields\": [
+                { \"name\": \"Test & Lint\", \"value\": \"$ST_VAL\", \"inline\": true },
+                { \"name\": \"Docker Hub\", \"value\": \"$ST_DOC\", \"inline\": true },
+                { \"name\": \"VPS Deploy\", \"value\": \"$ST_DEP\", \"inline\": true }
+              ],
+              \"footer\": { \"text\": \"Smart Class Automations\" },
+              \"timestamp\": \"$(date -u +'%Y-%m-%dT%H:%M:%SZ')\"
+            }]
+          }" \
+          ${{ secrets.DISCORD_WEBHOOK }}

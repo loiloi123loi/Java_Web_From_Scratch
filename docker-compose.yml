@@ -1,0 +1,73 @@
+version: "3.8"
+services:
+  db:
+    image: mysql:9.1.0
+    container_name: smart_class_db
+    environment:
+      MYSQL_DATABASE: smart_class_pro
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password}
+    ports:
+      - "${DB_EXTERNAL_PORT:-3307}:3306"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -u root -p$${DB_ROOT_PASSWORD}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    command:
+      - --initialize-insecure=false
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init-db:/docker-entrypoint-initdb.d
+    networks:
+      - app_network
+    restart: always
+
+  site-dev:
+    image: ${DOCKER_IMAGE_NAME:-smart-class-app}:latest-dev
+    build: .
+    container_name: smart_class_dev
+    env_file: .env
+    restart: always
+    environment:
+      - APP_ENV=dev
+      - SERVER_PORT=8080
+      - DB_URL=jdbc:mysql://db:3306/smart_class_dev
+      - DB_USERNAME=${DB_DEV_USER:-dev_user}
+      - DB_PASSWORD=${DB_DEV_PASSWORD:-dev_password_123}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_network
+      - web_proxy
+
+  site-pro:
+    image: ${DOCKER_IMAGE_NAME:-smart-class-app}:latest
+    build: .
+    container_name: smart_class_pro
+    env_file: .env
+    restart: always
+    environment:
+      - APP_ENV=prod
+      - SERVER_PORT=8080
+      - DB_URL=jdbc:mysql://db:3306/smart_class_pro
+      - DB_USERNAME=${DB_PRO_USER:-pro_user}
+      - DB_PASSWORD=${DB_PRO_PASSWORD:-pro_password_123}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_network
+      - web_proxy
+
+networks:
+  app_network:
+  web_proxy:
+    external: true
+
+volumes:
+  mysql_data:

@@ -1,6 +1,7 @@
 package com.polime.core;
 
 import java.io.InputStream;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
@@ -24,7 +25,8 @@ public class AppConfig {
 
     @SuppressWarnings("unchecked")
     private void loadYamlConfig(String env) {
-        try (InputStream input = getClass().getClassLoader().getResourceAsStream("application.yml")) {
+        try (InputStream input = Thread.currentThread().getContextClassLoader()
+                .getResourceAsStream("application.yml")) {
             if (input == null) {
                 System.out.println("Sorry, unable to find application.yml");
                 return;
@@ -51,8 +53,9 @@ public class AppConfig {
     private void flattenMap(String prefix, Map<String, Object> map, Properties props) {
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             String key = entry.getKey();
-            if (key.equals("profiles"))
+            if (key.equals("profiles")) {
                 continue;
+            }
 
             Object value = entry.getValue();
             String fullKey = prefix.isEmpty() ? key : prefix + "." + key;
@@ -66,11 +69,23 @@ public class AppConfig {
     }
 
     public String getProperty(String key) {
+        String val = System.getProperty(key);
+        if (val != null) {
+            return val;
+        }
+
+        String envKey = key.toUpperCase(Locale.ROOT).replace('.', '_');
+        val = System.getenv(envKey);
+        if (val != null) {
+            return val;
+        }
+
         return properties.getProperty(key);
     }
 
     public String getProperty(String key, String defaultValue) {
-        return properties.getProperty(key, defaultValue);
+        String val = getProperty(key);
+        return (val != null) ? val : defaultValue;
     }
 
     public int getIntProperty(String key, int defaultValue) {
@@ -84,8 +99,9 @@ public class AppConfig {
 
     public long getLongProperty(String key, long defaultValue) {
         String value = getProperty(key);
-        if (value == null)
+        if (value == null) {
             return defaultValue;
+        }
         try {
             return Long.parseLong(value);
         } catch (NumberFormatException e) {

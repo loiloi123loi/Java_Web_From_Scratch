@@ -1,10 +1,14 @@
 server:
   port: 8080
+  cors:
+    allow_origin: "http://localhost:3000, http://localhost:5173"
 
 profiles:
   local:
     server:
       port: 8080
+      cors:
+        allow_origin: "http://localhost:3000, http://localhost:5173"
     auth:
       password_secret: "my_super_secret_key_123"
     jwt:
@@ -21,7 +25,9 @@ profiles:
 
   dev:
     server:
-      port: 8081
+      port: 8080
+      cors:
+        allow_origin: "http://dev.example.com"
     auth:
       password_secret: "my_super_secret_key_123"
     jwt:
@@ -32,13 +38,15 @@ profiles:
       email_verify_token_secret: "email_verify_token_secret_extra_long_key_for_safety"
       email_verify_token_expires_in: 604800000
     db:
-      url: jdbc:mysql://dev-db-server:3306/smart_class_db
+      url: jdbc:mysql://db:3306/smart_class_dev
       username: dev_user
-      password: dev_pass
+      password: dev_password_123
 
   prod:
     server:
-      port: 80
+      port: 8080
+      cors:
+        allow_origin: "https://example.com"
     auth:
       password_secret: "my_super_secret_key_123"
     jwt:
@@ -49,6 +57,25 @@ profiles:
       email_verify_token_secret: "email_verify_token_secret_extra_long_key_for_safety"
       email_verify_token_expires_in: 604800000
     db:
-      url: jdbc:mysql://prod-db-server:3306/smart_class_db
-      username: prod_user
-      password: prod_secure_pass
+      url: jdbc:mysql://db:3306/smart_class_pro
+      username: pro_user
+      password: pro_password_123
+
+  docker:
+    server:
+      port: 8080
+      cors:
+        allow_origin: "*"
+    auth:
+      password_secret: "docker_secret_key_123"
+    jwt:
+      access_token_secret: "docker_access_token_secret_extra_long_key"
+      access_token_expires_in: 900000
+      refresh_token_secret: "docker_refresh_token_secret_extra_long_key"
+      refresh_token_expires_in: 2592000000
+      email_verify_token_secret: "docker_email_verify_token_secret_extra_long_key"
+      email_verify_token_expires_in: 604800000
+    db:
+      url: jdbc:mysql://db:3306/smart_class_db
+      username: root
+      password: root_password

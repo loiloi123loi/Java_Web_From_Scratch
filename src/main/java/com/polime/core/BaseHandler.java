@@ -3,12 +3,14 @@ package com.polime.core;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.polime.dto.BaseResponseDto;
 import com.polime.enums.EHttpStatus;
+import com.polime.enums.EResponseCode;
 import com.polime.exception.DuplicateResourceException;
 import com.polime.exception.InvalidCredentialsException;
 import com.polime.exception.ResourceNotFoundException;
@@ -33,7 +35,7 @@ public abstract class BaseHandler implements HttpHandler {
     protected abstract void registerRoutes();
 
     protected void addRoute(String path, String method, RouteHandler handler) {
-        routes.computeIfAbsent(path, k -> new HashMap<>()).put(method.toUpperCase(), handler);
+        routes.computeIfAbsent(path, k -> new HashMap<>()).put(method.toUpperCase(Locale.ROOT), handler);
     }
 
     protected void get(String path, RouteHandler handler) {
@@ -58,7 +60,22 @@ public abstract class BaseHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
+        String clientIp = exchange.getRemoteAddress().getAddress().getHostAddress();
+
+        if (!RateLimiter.isAllowed(clientIp)) {
+            WebServer.sendJsonResponse(exchange, 429, new BaseResponseDto<Object>(
+                    "Too many requests. Please try again later.", EResponseCode.INTERNAL_ERROR));
+            return;
+        }
+
         try {
+            String method = exchange.getRequestMethod().toUpperCase(Locale.ROOT);
+
+            if (method.equals("OPTIONS")) {
+                WebServer.sendResponse(exchange, 204, "");
+                return;
+            }
+
             String path = exchange.getRequestURI().getPath();
 
             if (path.startsWith(basePath)) {
@@ -75,7 +92,6 @@ public abstract class BaseHandler implements HttpHandler {
 
             Map<String, RouteHandler> methodHandlers = routes.get(path);
             if (methodHandlers != null) {
-                String method = exchange.getRequestMethod().toUpperCase();
                 RouteHandler handler = methodHandlers.get(method);
 
                 if (handler != null) {
@@ -109,37 +125,37 @@ public abstract class BaseHandler implements HttpHandler {
 
     protected void handleNotFound(HttpExchange exchange) throws IOException {
         WebServer.sendJsonResponse(exchange, EHttpStatus.NOT_FOUND.getCode(),
-                new BaseResponseDto<Object>("Resource Not Found", "NOT_FOUND"));
+                new BaseResponseDto<Object>("Resource Not Found", EResponseCode.NOT_FOUND));
     }
 
     protected void handleMethodNotAllowed(HttpExchange exchange) throws IOException {
         WebServer.sendJsonResponse(exchange, EHttpStatus.METHOD_NOT_ALLOWED.getCode(),
-                new BaseResponseDto<Object>("Method Not Allowed", "METHOD_NOT_ALLOWED"));
+                new BaseResponseDto<Object>("Method Not Allowed", EResponseCode.METHOD_NOT_ALLOWED));
     }
 
     protected void handleValidationError(HttpExchange exchange, ValidationException e) throws IOException {
         WebServer.sendJsonResponse(exchange, EHttpStatus.BAD_REQUEST.getCode(),
-                new BaseResponseDto<Object>(e.getMessage(), "VALIDATION_ERROR"));
+                new BaseResponseDto<Object>(e.getMessage(), EResponseCode.VALIDATION_ERROR));
     }
 
     protected void handleDuplicateResource(HttpExchange exchange, DuplicateResourceException e) throws IOException {
         WebServer.sendJsonResponse(exchange, EHttpStatus.CONFLICT.getCode(),
-                new BaseResponseDto<Object>(e.getMessage(), "DUPLICATE_RESOURCE"));
+                new BaseResponseDto<Object>(e.getMessage(), EResponseCode.DUPLICATE_RESOURCE));
     }
 
     protected void handleResourceNotFound(HttpExchange exchange, ResourceNotFoundException e) throws IOException {
         WebServer.sendJsonResponse(exchange, EHttpStatus.NOT_FOUND.getCode(),
-                new BaseResponseDto<Object>(e.getMessage(), "RESOURCE_NOT_FOUND"));
+                new BaseResponseDto<Object>(e.getMessage(), EResponseCode.RESOURCE_NOT_FOUND));
     }
 
     protected void handleInvalidCredentials(HttpExchange exchange, InvalidCredentialsException e) throws IOException {
         WebServer.sendJsonResponse(exchange, EHttpStatus.UNAUTHORIZED.getCode(),
-                new BaseResponseDto<Object>(e.getMessage(), "INVALID_CREDENTIALS"));
+                new BaseResponseDto<Object>(e.getMessage(), EResponseCode.INVALID_CREDENTIALS));
     }
 
     protected void handleUnauthorized(HttpExchange exchange, UnauthorizedException e) throws IOException {
         WebServer.sendJsonResponse(exchange, EHttpStatus.UNAUTHORIZED.getCode(),
-                new BaseResponseDto<Object>(e.getMessage(), "UNAUTHORIZED"));
+                new BaseResponseDto<Object>(e.getMessage(), EResponseCode.UNAUTHORIZED));
     }
 
     protected void handleSyntaxError(HttpExchange exchange, JsonSyntaxException e) throws IOException {
@@ -150,17 +166,17 @@ public abstract class BaseHandler implements HttpHandler {
         }
 
         WebServer.sendJsonResponse(exchange, EHttpStatus.BAD_REQUEST.getCode(),
-                new BaseResponseDto<Object>(message, "INVALID_JSON_SYNTAX"));
+                new BaseResponseDto<Object>(message, EResponseCode.INVALID_JSON_SYNTAX));
     }
 
     protected void handleDatabaseError(HttpExchange exchange, SQLException e) throws IOException {
         WebServer.sendJsonResponse(exchange, EHttpStatus.INTERNAL_SERVER_ERROR.getCode(),
-                new BaseResponseDto<Object>("Database error occurred", "DATABASE_ERROR"));
+                new BaseResponseDto<Object>("Database error occurred", EResponseCode.DATABASE_ERROR));
     }
 
     protected void handleInternalError(HttpExchange exchange, Exception e) throws IOException {
         WebServer.sendJsonResponse(exchange, EHttpStatus.INTERNAL_SERVER_ERROR.getCode(),
-                new BaseResponseDto<Object>("Internal server error", "INTERNAL_ERROR"));
+                new BaseResponseDto<Object>("Internal server error", EResponseCode.INTERNAL_ERROR));
     }
 
     protected <T> T getBody(HttpExchange exchange, Gson gson, Class<T> clazz) throws IOException {
