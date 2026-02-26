@@ -52,7 +52,7 @@ public class UserService {
             }
 
             if (user.getVerifyStatus() == EUserVerifyStatus.Verified) {
-                return new BaseResponseDto<>("Email already verified", "SUCCESS");
+                return new BaseResponseDto<>("Email already verified", EResponseCode.SUCCESS);
             }
 
             String storedToken = user.getEmailVerifyToken();
@@ -79,7 +79,7 @@ public class UserService {
             userRepository.update(user);
             DatabaseManager.commit();
 
-            return new BaseResponseDto<>("Email verified successfully", "SUCCESS");
+            return new BaseResponseDto<>("Email verified successfully", EResponseCode.SUCCESS);
         } catch (Exception e) {
             DatabaseManager.rollback();
             throw e;
