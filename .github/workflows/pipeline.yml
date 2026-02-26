@@ -108,9 +108,23 @@ jobs:
             REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
             export GITHUB_REPOSITORY_LOWER=$REPO_LOWER
 
+            mkdir -p ${{ secrets.CLOUD_PATH }}
             cd ${{ secrets.CLOUD_PATH }}
 
-            git pull origin ${{ github.ref_name }}
+            if [ ! -d ".git" ]; then
+              echo "🚀 Cloning repository for the first time..."
+              git clone -b ${{ github.ref_name }} https://github.com/${{ github.repository }}.git .
+            else
+              echo "🔄 Updating existing repository..."
+              git fetch origin
+              git checkout ${{ github.ref_name }}
+              git reset --hard origin/${{ github.ref_name }}
+            fi
+
+            if [ ! -f .env ]; then
+              cp .env.example .env
+              echo "⚠️ .env created from .env.example."
+            fi
 
             echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
