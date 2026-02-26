@@ -129,7 +129,16 @@ jobs:
             echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
             export DOCKER_IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/smart-class-app"
-            docker-compose pull
 
-            docker-compose up -d --remove-orphans
+            if docker compose version >/dev/null 2>&1; then
+              DOCKER_CMD="docker compose"
+            else
+              DOCKER_CMD="docker-compose"
+            fi
+
+            echo "Using command: $DOCKER_CMD"
+            $DOCKER_CMD pull
+            $DOCKER_CMD down --remove-orphans || true
+            $DOCKER_CMD up -d --remove-orphans
+
             docker image prune -f
