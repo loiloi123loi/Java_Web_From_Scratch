@@ -60,7 +60,22 @@ public abstract class BaseHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
+        String clientIp = exchange.getRemoteAddress().getAddress().getHostAddress();
+
+        if (!RateLimiter.isAllowed(clientIp)) {
+            WebServer.sendJsonResponse(exchange, 429, new BaseResponseDto<Object>(
+                    "Too many requests. Please try again later.", EResponseCode.INTERNAL_ERROR));
+            return;
+        }
+
         try {
+            String method = exchange.getRequestMethod().toUpperCase(Locale.ROOT);
+
+            if (method.equals("OPTIONS")) {
+                WebServer.sendResponse(exchange, 204, "");
+                return;
+            }
+
             String path = exchange.getRequestURI().getPath();
 
             if (path.startsWith(basePath)) {
@@ -77,7 +92,6 @@ public abstract class BaseHandler implements HttpHandler {
 
             Map<String, RouteHandler> methodHandlers = routes.get(path);
             if (methodHandlers != null) {
-                String method = exchange.getRequestMethod().toUpperCase(Locale.ROOT);
                 RouteHandler handler = methodHandlers.get(method);
 
                 if (handler != null) {
