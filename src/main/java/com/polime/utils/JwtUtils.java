@@ -93,4 +93,8 @@ public final class JwtUtils {
     public static String getRefreshSecret() {
         return refreshSecret;
     }
+
+    public static String getEmailVerifySecret() {
+        return emailVerifySecret;
+    }
 }

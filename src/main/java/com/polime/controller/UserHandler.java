@@ -10,6 +10,7 @@ import com.polime.core.AppConstants;
 import com.polime.core.BaseHandler;
 import com.polime.core.WebServer;
 import com.polime.dto.BaseResponseDto;
+import com.polime.dto.user.request.EmailVerifyDto;
 import com.polime.dto.user.request.TokenRefreshDto;
 import com.polime.dto.user.request.UserLoginDto;
 import com.polime.dto.user.request.UserLogoutDto;
@@ -37,6 +38,7 @@ public class UserHandler extends BaseHandler {
         post("/login", this::handleLogin);
         post("/logout", this::handleLogout);
         post("/refresh-token", this::handleRefreshToken);
+        post("/verify-email", this::handleVerifyEmail);
     }
 
     private void handleRegister(HttpExchange exchange) throws IOException, SQLException {
@@ -72,5 +74,16 @@ public class UserHandler extends BaseHandler {
         dto.validate();
 
         WebServer.sendJsonResponse(exchange, EHttpStatus.OK.getCode(), userService.refreshToken(dto));
+    }
+
+    private void handleVerifyEmail(HttpExchange exchange) throws IOException, SQLException {
+        authenticate(exchange);
+        Claims claims = (Claims) exchange.getAttribute(AppConstants.DECODED_AUTHORIZATION);
+        Long userId = Long.parseLong(claims.getSubject());
+
+        EmailVerifyDto dto = getBody(exchange, gson, EmailVerifyDto.class);
+        dto.validate();
+
+        WebServer.sendJsonResponse(exchange, EHttpStatus.OK.getCode(), userService.verifyEmail(userId, dto));
     }
 }
