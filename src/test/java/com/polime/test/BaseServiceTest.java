@@ -65,6 +65,15 @@ public abstract class BaseServiceTest {
         }
     }
 
+    protected static void assertNotEquals(Object expected, Object actual) {
+        if (expected == null && actual == null) {
+            throw new AssertionError("\n      Expected: values NOT equal\n      Actual:   both are null");
+        }
+        if (expected != null && expected.equals(actual)) {
+            throw new AssertionError("\n      Expected: values NOT equal\n      Actual:   both are " + expected);
+        }
+    }
+
     protected static void assertNotNull(Object obj) {
         if (obj == null) {
             throw new AssertionError("\n      Expected: non-null\n      Actual:   null");

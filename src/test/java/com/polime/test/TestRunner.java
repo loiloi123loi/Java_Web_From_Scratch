@@ -10,6 +10,10 @@ import java.util.Set;
 
 import com.polime.core.AppConfig;
 import com.polime.core.DatabaseManager;
+import com.polime.dto.user.request.EmailVerifyDtoTest;
+import com.polime.dto.user.request.TokenRefreshDtoTest;
+import com.polime.dto.user.request.UserLoginDtoTest;
+import com.polime.dto.user.request.UserLogoutDtoTest;
 import com.polime.dto.user.request.UserRegisterDtoTest;
 import com.polime.service.UserServiceTest;
 import com.polime.utils.JwtUtils;
@@ -58,6 +62,10 @@ public class TestRunner {
 
         registerTest(new UserServiceTest());
         registerTest(new UserRegisterDtoTest());
+        registerTest(new UserLoginDtoTest());
+        registerTest(new EmailVerifyDtoTest());
+        registerTest(new TokenRefreshDtoTest());
+        registerTest(new UserLogoutDtoTest());
 
         if (args.length == 0) {
             runAllTests();

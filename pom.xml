@@ -193,6 +193,9 @@
                 <configuration>
                     <title>Coverage Report - ${local.build.time}</title>
                     <excludes>
+                        <exclude>com/polime/core/**</exclude>
+                        <exclude>com/polime/controller/**</exclude>
+                        <exclude>com/polime/enums/**</exclude>
                         <exclude>com/polime/model/**</exclude>
                         <exclude>com/polime/dto/**/*ResponseDto.class</exclude>
                         <exclude>com/polime/dto/BaseResponseDto.class</exclude>
@@ -227,7 +230,7 @@
                                         <limit>
                                             <counter>LINE</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.35</minimum>
+                                            <minimum>0.80</minimum>
                                         </limit>
                                     </limits>
                                     <excludes>

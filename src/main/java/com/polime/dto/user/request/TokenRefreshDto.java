@@ -8,10 +8,6 @@ public class TokenRefreshDto {
     public TokenRefreshDto() {
     }
 
-    public TokenRefreshDto(String refreshToken) {
-        this.refreshToken = refreshToken;
-    }
-
     public String getRefreshToken() {
         return refreshToken;
     }
