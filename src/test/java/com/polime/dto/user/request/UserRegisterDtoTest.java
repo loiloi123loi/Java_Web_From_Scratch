@@ -27,6 +27,7 @@ public class UserRegisterDtoTest extends BaseServiceTest {
         runTest("validate_NameRequired", this::validate_NameRequired);
         runTest("validate_DateOfBirthRequired", this::validate_DateOfBirthRequired);
         runTest("validate_Underage", this::validate_Underage);
+        runTest("validate_NameTooLong", this::validate_NameTooLong);
     }
 
     public void validate_Success() {
@@ -82,6 +83,7 @@ public class UserRegisterDtoTest extends BaseServiceTest {
         dto.setEmail("test@example.com");
         dto.setPassword("password123");
         dto.setConfirmPassword("different");
+        assertNotEquals(dto.getPassword(), dto.getConfirmPassword());
         ValidationException ex = assertThrows(ValidationException.class, dto::validate);
         assertEquals("Passwords do not match", ex.getMessage());
     }
@@ -116,5 +118,15 @@ public class UserRegisterDtoTest extends BaseServiceTest {
         dto.setDateOfBirth(LocalDate.now().minusYears(10));
         ValidationException ex = assertThrows(ValidationException.class, dto::validate);
         assertEquals("You must be at least 13 years old", ex.getMessage());
+    }
+
+    public void validate_NameTooLong() {
+        UserRegisterDto dto = new UserRegisterDto();
+        dto.setEmail("test@example.com");
+        dto.setPassword("password123");
+        dto.setConfirmPassword("password123");
+        dto.setName("a".repeat(256));
+        ValidationException ex = assertThrows(ValidationException.class, dto::validate);
+        assertEquals("Name must be less than 255 characters", ex.getMessage());
     }
 }

@@ -2,6 +2,7 @@ package com.polime.utils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
@@ -63,6 +64,7 @@ public final class JwtUtils {
         Date now = new Date();
 
         JwtBuilder builder = Jwts.builder();
+        builder.id(UUID.randomUUID().toString());
         builder.subject(subject);
         builder.claim("verify", verifyStatus);
         builder.issuedAt(now);
